@@ -4,7 +4,7 @@
 
 See the docs at <https://monodetour.github.io>.
 
-![MonoDetour Logo](https://github.com/MonoDetour/MonoDetour/raw/main/src/assets/MonoDetour.webp)
+![MonoDetour Logo](https://raw.githubusercontent.com/MonoDetour/MonoDetour.github.io/refs/heads/main/src/assets/MonoDetour.webp)
 
 ## 🧞 Commands
 
