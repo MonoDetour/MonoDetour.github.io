@@ -1,0 +1,22 @@
+---
+title: Overview
+description: Get started with using MonoDetour for your .NET detouring needs!
+sidebar:
+  order: 0
+---
+
+MonoDetour is a .NET detouring library powered by MonoMod.RuntimeDetour.
+
+It focuses on being as convenient as possible while also being easy to use. And as such, hook generation with C# source generators is a core part of it, which makes hooking easy and fun.
+
+MonoDetour comes in 3 parts:
+
+- **MonoDetour**: The library which handles hooking
+- **MonoDetour.HookGen**: The C# HookGen source generator
+- **MonoDetour.ILWeaver**: A redesigned MonoMod ILCursor
+
+MonoDetour.ILWeaver is not required to be used, although is recommended.
+
+## Adding to Your Project
+
+Right now, you can't add MonoDetour to your project. It will be possible once MonoDetour releases, as right now it's not stable.
