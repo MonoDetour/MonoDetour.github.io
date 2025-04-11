@@ -5,13 +5,11 @@ sidebar:
   order: 2
 ---
 
-import { Aside } from '@astrojs/starlight/components';
-
-<Aside>
+:::note
 These examples are for teaching **MonoDetour.ILWeaver** for manipulating an `ILContext`.  
 You can also use other APIs for manipulating an `ILContext` such as MonoMod's `ILCursor`,
 even though we recommend using ILWeaver as it is based off of ILCursor.
-</Aside>
+:::
 
 To start ILHooking, we need a target method we want to hook. So, given the target type and method we want to hook:
 

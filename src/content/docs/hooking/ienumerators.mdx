@@ -5,10 +5,256 @@ sidebar:
   order: 1
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+:::note
+This article expects that you have read the [hooking normal methods](/hooking/hooking-normal-methods) article.
+:::
 
-<Aside>
-This article expects that you have read [the hooking normal methods](/hooking/hooking-normal-methods) article.
-</Aside>
+:::tip
+If you just want the answer, see the answer on the [bottom of this page](#different-ways-of-hooking).
+:::
 
-TODO
+IEnumerator methods are quite special. A simple IEnumerator method such as this:
+
+```cs
+public static class ContainingClass
+{
+    public static IEnumerator<string> GetMessages()
+    {
+        yield return "Hello from 1st MoveNext!";
+        yield return "Hello from 2nd MoveNext!";
+    }
+}
+```
+
+Will actually be turned into something like this by the C# compiler:
+
+```cs
+public static class ContainingClass
+{
+    public static IEnumerator<string> GetMessages()
+    {
+        return new _GetMessages_d__0(0);
+    }
+
+    [CompilerGenerated]
+    private sealed class _GetMessages_d__0 : IEnumerator<string>, IEnumerator, IDisposable
+    {
+        private int __1__state;
+        private string __2__current;
+
+        string IEnumerator<string>.Current => __2__current;
+        object IEnumerator.Current => __2__current;
+
+        public _GetMessages_d__0(int __1__state)
+        {
+            this.__1__state = __1__state;
+        }
+
+        void IDisposable.Dispose() { }
+
+        private bool MoveNext()
+        {
+            switch (__1__state)
+            {
+                default:
+                    return false;
+                case 0:
+                    __1__state = -1;
+                    __2__current = "Hello from 1st MoveNext!";
+                    __1__state = 1;
+                    return true;
+                case 1:
+                    __1__state = -1;
+                    __2__current = "Hello from 2nd MoveNext!";
+                    __1__state = 2;
+                    return true;
+                case 2:
+                    __1__state = -1;
+                    return false;
+            }
+        }
+
+        bool IEnumerator.MoveNext() => MoveNext();
+
+        void IEnumerator.Reset() => throw new NotSupportedException();
+    }
+}
+```
+
+The initial version was just syntactic sugar C# gives for creating methods that can be iterated,
+even if the implementation behind the scenes isn't as simple.
+
+## Understanding IEnumerators
+
+To understand all this, we need to know that
+[`IEnumerator<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerator-1)
+is an interface which supports a simple iteration over a generic collection. There also exists the
+non-generic counterpart,
+[`IEnumerator`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerator).
+
+While this might be new to you, you are actually making use of the `IEnumerator` interfaces
+when using `foreach` loops. The foreach loop can take in anything that implements
+[`IEnumerable`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerable) or
+[`IEnumerable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerable-1)
+which are interfaces to get the `IEnumerator` object of that type using the `GetEnumerator()` method.
+
+Now, let's get to enumerating the `GetMessages` method. We can't use the foreach loop here
+because our `GetMessages()` method doesn't return `IEnumerable<string>`, but it instead it
+directly returns `IEnumerator<string>`. So we will enumerate it manually using the interface:
+
+```cs
+IEnumerator<string> enumerator = ContainingType.GetMessages();
+
+while (enumerator.MoveNext())
+{
+    Console.WriteLine(enumerator.Current);
+}
+// Prints:
+// Hello from 1st MoveNext!
+// Hello from 2nd MoveNext!
+```
+
+## Mistakes When Hooking
+
+Based on the above, you hopefully understand why adding a `PostfixDetour` to the
+`ContainingType.GetMessages()` won't work as you'd first expect. That hook would run
+as soon as the method is called since that method simply
+returns the enumerable object.
+
+So, how do we hook the end of the `IEnumerator` object?
+
+## Hooking The IEnumerator
+
+As you should remember, the `ContainingType.GetMessages()` method returns the
+enumerable object. We can actually hook the end of that method and take the
+`IEnumerator` object the method would have returned, and instead we make the
+method return our own `IEnumerator`!
+
+What this means is essentially this:
+
+```cs
+public static class ContainingClass
+{
+    public static IEnumerator<string> GetMessages()
+    {
+        IEnumerator<string> originalEnumerator = new _GetMessages_d__0(0);
+        // Insert our postfix here:
+        IEnumerator<string> ourEnumerator = MyHooks.Wrapper_GetMessages(originalEnumerator);
+        return ourEnumerator;
+    }
+    // ...
+}
+```
+```cs
+// The following would be in your code:
+static class MyHooks
+{
+    internal static void InitHooks()
+    {
+        // This hook inserts a call to our wrapper method like in the above demonstration.
+        On.Namespace.ContainingClass.GetMessages.IEnumeratorDetour(Wrapper_GetMessages);
+    }
+
+    // This wrapper method takes the original enumerator and
+    // returns its own enumerator object which wraps the original.
+    static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> enumerator)
+    {
+        while (enumerator.MoveNext())
+        {
+            yield return enumerator.Current;
+        }
+    }
+}
+```
+
+And that's it! Remember that our `IEnumerator` method also becomes a state machine,
+and on `MoveNext()` it will execute the following:
+```cs
+private bool MoveNext()
+{
+    switch (__1__state)
+    {
+        // Normally this would be for tracking the state,
+        // but our IEnumerator method only has a single while loop.
+        default:
+            return false;
+        case 0:
+            __1__state = -1;
+            break;
+        case 1:
+            __1__state = -1;
+            break;
+    }
+
+    // Call the original enumerator's MoveNext method
+    if (enumerator.MoveNext())
+    {
+        // Set state and return with the result.
+        __2__current = enumerator.Current;
+        __1__state = 1;
+        return true;
+    }
+
+    // If the original enumerator's MoveNext method
+    // returned false, we also return false.
+    return false;
+}
+```
+
+## Different Ways of Hooking
+
+MonoDetour offers multiple ways of hooking IEnumerator methods, all of which are listed here.
+
+- Wrap the entire enumerator, getting full control over enumeration:
+
+```cs
+On.Namespace.ContainingClass.GetMessages.IEnumeratorDetour(Wrapper_GetMessages);
+// ...
+private static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> enumerator)
+{
+    // Prefix here...
+
+    while (enumerator.MoveNext())
+        yield return enumerator.Current;
+
+    // Postfix here...
+}
+```
+
+- Prefix at the start of the enumerator:
+
+```cs
+On.Namespace.ContainingClass.GetMessages.IEnumeratorPrefix(Prefix_GetMessages);
+// ...
+private static void Prefix_GetMessages(IEnumerator<int> enumerator)
+{
+    // Remember, enumerator.Current will be null here since we are in a prefix!
+}
+```
+
+- Postfix at the end of the enumerator:
+
+```cs
+On.Namespace.ContainingClass.GetMessages.IEnumeratorPostfix(Postfix_GetMessages);
+// ...
+private static void Postfix_GetMessages(IEnumerator<int> enumerator)
+{
+    var current = enumerator.Current;
+}
+```
+
+- ILHook the MoveNext method:
+
+```cs
+// The target class will look something like this.
+// It is autogenerated and looks messy.
+On.Namespace.ContainingClass._GetMessages_d__0.MoveNext.ILHook(ILHook_GetMessages_MoveNext);
+// ...
+private static void ILHook_GetMessages_MoveNext(ILContext il)
+{
+    // Manipulate the MoveNext method here,
+    // for example change the strings that are returned.
+}
+```
+
+For manipulating methods with ILHooks, see [ILHooking](/hooking/ilhooking).
