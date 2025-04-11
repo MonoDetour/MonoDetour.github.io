@@ -1,5 +1,5 @@
 ---
-title: Hooking
+title: Hooking Normal Methods
 description: Learn from Hook examples with MonoDetour!
 sidebar:
   order: 0
@@ -102,7 +102,3 @@ On.Lib.LibraryClass.set_IsTrue.Prefix(MyHook);
 // Note that if the property doesn't implement
 // a setter, there won't be a hook for it.
 ```
-
-## Hooking IEnumerators
-
-TODO: Investigate this.

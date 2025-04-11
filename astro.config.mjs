@@ -33,8 +33,8 @@ export default defineConfig({
 					autogenerate: { directory: "getting-started" },
 				},
 				{
-					label: "Usage Examples",
-					autogenerate: { directory: "usage-examples" },
+					label: "Hooking",
+					autogenerate: { directory: "hooking" },
 				},
 			],
         }),
