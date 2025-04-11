@@ -3,10 +3,8 @@
 }
 
 .sidebar-pane {
-    /* border-left: 1px solid var(--sl-color-hairline-shade); */
     border-right: 1px solid var(--sl-color-hairline-shade);
 }
 .right-sidebar {
-    /* border-left: 1px solid var(--sl-color-hairline-shade); */
     border-left: 1px solid var(--sl-color-hairline-shade);
 }

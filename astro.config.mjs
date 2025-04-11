@@ -1,7 +1,8 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import starlightObsidianTheme from 'starlight-theme-obsidian'
+import starlightLinksValidator from 'starlight-links-validator'
+import starlightThemeObsidian from 'starlight-theme-obsidian'
 
 // https://astro.build/config
 export default defineConfig({
@@ -9,7 +10,7 @@ export default defineConfig({
     integrations: [
         starlight({
             title: 'MonoDetour',
-            credits: true,
+			credits: true,
             logo: {
 				src: './public/favicon.svg',
 			},
@@ -22,9 +23,10 @@ export default defineConfig({
 			customCss: [
                 './src/styles/global.css'
             ],
-            plugins: [
-				starlightObsidianTheme(),
-            ],
+			plugins: [
+				starlightLinksValidator(),
+				starlightThemeObsidian(),
+			],
             sidebar: [
 				{
 					label: "Getting Started",
