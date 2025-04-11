@@ -27,6 +27,9 @@ export default defineConfig({
 				starlightLinksValidator(),
 				starlightThemeObsidian(),
 			],
+			components: {
+				Head: "./src/components/Head.astro",
+			},
             sidebar: [
 				{
 					label: "Getting Started",
