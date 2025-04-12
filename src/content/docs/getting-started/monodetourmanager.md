@@ -2,7 +2,7 @@
 title: MonoDetourManager
 description: Learn about the MonoDetourManager in MonoDetour.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 Every hook made with MonoDetour is attached to a `MonoDetour.MonoDetourManager` object.

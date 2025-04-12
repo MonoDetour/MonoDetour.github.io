@@ -5,6 +5,8 @@ sidebar:
   order: 0
 ---
 
+import { LinkCard } from '@astrojs/starlight/components';
+
 MonoDetour is a .NET detouring library powered by MonoMod.RuntimeDetour.
 
 It focuses on being as convenient as possible while also being easy to use. And as such, hook generation with C# source generators is a core part of it, which makes hooking easy and fun.
@@ -16,6 +18,12 @@ MonoDetour comes in 3 parts:
 - **MonoDetour.ILWeaver**: A redesigned MonoMod ILCursor
 
 MonoDetour.ILWeaver is not required to be used, although is recommended.
+
+<LinkCard
+  title="Why use MonoDetour?"
+  href="/getting-started/why-monodetour"
+  description="Learn why this project exists, and why you might want to use it over Harmony or MonoMod!"
+/>
 
 ## Adding to Your Project
 

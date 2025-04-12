@@ -2,7 +2,7 @@
 title: Detour Types
 description: Learn about detour types with MonoDetour.
 sidebar:
-  order: 2
+  order: 3
 ---
 
 MonoDetour has 3 built-in detour types. These are:
@@ -48,4 +48,3 @@ class SomeTypeHooks
     }
 }
 ```
-

@@ -1,8 +1,8 @@
 ---
-title: Basics
+title: Introduction
 description: Get started with using MonoDetour for your .NET detouring needs!
 sidebar:
-  order: 1
+  order: 2
 ---
 
 In MonoDetour, target method parameters are passed in as a struct, making it easy to discover what's possible.

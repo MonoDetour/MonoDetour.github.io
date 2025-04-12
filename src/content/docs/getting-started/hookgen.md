@@ -2,10 +2,20 @@
 title: HookGen
 description: Learn about MonoDetour's HookGen!
 sidebar:
-  order: 4
+  order: 5
 ---
 
-First, you need to tell MonoDetour which types to generate hooks for:
+MonoDetour borrows MonoMod's HookGen v2 which works with C# source generators which generates hook helpers right in your assembly, meaning your assembly won't depend on external assemblies for hook helpers. MonoDetour makes minor modifications to MonoMod's HookGen v2 to make it fit MonoDetour's vision.
+
+## Generating Hooks
+
+You need to tell MonoDetour's HookGen which types to generate hooks for to keep the size of the generated code smaller.
+
+:::note
+If the size of generated hooks appears to become an issue, an IL post-processing step could be implemented by MonoDetour to strip away unused hooks. Currently it is not a priority.
+:::
+
+We can tell MonoDetour which types to generate hooks for:
 
 ```cs
 [assembly: MonoDetourTargets<SomeType>]
@@ -27,7 +37,9 @@ On.SomeNamespace.SomeType.SomeMethod.Postfix(YourPostfixHookHere);
 On.SomeNamespace.SomeType.SomeMethod.ILHook(YourILHookHere);
 ```
 
-Behind the scenes, the generated hooks look something like this:
+## Behind The Scenes
+
+The hooks MonoDetour generates look something like this:
 
 ```cs
 internal static class SomeMethod

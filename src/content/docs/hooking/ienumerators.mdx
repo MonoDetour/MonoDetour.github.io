@@ -226,7 +226,7 @@ private static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> enume
 ```cs
 On.Namespace.ContainingClass.GetMessages.IEnumeratorPrefix(Prefix_GetMessages);
 // ...
-private static void Prefix_GetMessages(IEnumerator<int> enumerator)
+private static void Prefix_GetMessages(IEnumerator<string> enumerator)
 {
     // Remember, enumerator.Current will be null here since we are in a prefix!
 }
@@ -237,7 +237,7 @@ private static void Prefix_GetMessages(IEnumerator<int> enumerator)
 ```cs
 On.Namespace.ContainingClass.GetMessages.IEnumeratorPostfix(Postfix_GetMessages);
 // ...
-private static void Postfix_GetMessages(IEnumerator<int> enumerator)
+private static void Postfix_GetMessages(IEnumerator<string> enumerator)
 {
     var current = enumerator.Current;
 }

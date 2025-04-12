@@ -1,0 +1,227 @@
+---
+title: Why MonoDetour
+description: Learn why MonoDetour exists and the design decisions compared against Harmony and MonoMod.
+sidebar:
+  order: 1
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+
+While Harmony and MonoMod.RuntimeDetour are completely fine and you may not see any problems with them. But I, [Hamunii](<https://github.com/Hamunii>), was never fully satisfied with either. Not all of that dissatisfaction is actually coming from my experience, but comes from seeing other people struggle with both Harmony and MonoMod.
+
+## Existing Solutions
+
+### Issues With Harmony
+
+:::note
+The following are common issues I've seen people struggle with when using Harmony. Note that these aren't major issues, all of it can be figured out by looking up the documentation. However, these can cause frustration and the point is that we can solve some of these issues.
+:::
+
+- Patch never runs/fails to be applied
+  - Missing HarmonyPatch attribute on the class
+  - Missing patch target type
+  - Missing patch method name
+  - Target method has overloads
+- How to get/set parameters in patch method
+- How to get/set return value in patch method
+
+These also include preference, such as that I don't like how much is "magic" — stuff you need to look up the documentation for to figure out, such as the special argument names.
+
+### What I Like About Harmony
+
+- Convenient without any setup—just start patching
+- Almost every hook can be performed the same familiar way
+- Prefixes and Postfixes don't wrap the whole target method
+
+Originally I liked MonoMod Hooks more *because* they wrap the whole target method so there is no need for Prefixes and Postfixes and therefore there are no workarounds required for keeping state between them.
+
+In my experience though, you actually almost never need to keep state between prefix and postfix, and you rarely need to do something both before and after the target method. Not to mention that you also need to remember to call the trampoline (commonly called `orig`) or you accidentally skip the "original" method from running.
+
+### Issues With MonoMod
+
+:::note
+I don't think there is anything fundamentally wrong with MonoMod. In fact, this project is built on MonoMod.RuntimeDetour and implements all the fanciness on top of that. This is instead more about the Hooking experience with vanilla MonoMod.RuntimeDetour or HookGen (v1).
+:::
+
+- Manual Hooking with `MonoMod.RuntimeDetour.Hook` is tedious
+- HookGen (v1) requires external hook helper assemblies to be present, which usually means something like (Auto)HookGenPatcher needs to be there to generate those files at runtime
+  - You may also want to hook something which hasn't already been generated a hook helper assembly
+- HookGen (v1) doesn't generate hooks for properties (getters and setters)
+- `Hook`s wrap the whole target method, requiring calling the trampoline `orig` with its arguments
+
+### What I Like About MonoMod
+
+- `Hook`s wrap the whole target method, removing the need for a lot of Harmony's "magic"
+  - Accessing and changing parameter values and overriding return value becomes obvious
+- HookGen is still incredibly convenient despite what I listed earlier
+- `ILHook` manipulators are great as they get passed an `ILContext` which holds a lot of information
+
+## MonoDetour Design
+
+While I am the main target user of MonoDetour, I have designed the API so that it should as easy as possible for anyone to use. I like to help people, which is why I'm writing this documentation in the first place.
+
+Taking everything I like from Harmony and MonoMod, we end up with MonoDetour.
+
+### Convenience Is Priority \#1
+
+If MonoDetour is not any more convenient than Harmony or MonoMod with HookGen in all cases, then it has failed. This ties in closely with being easy and intuitive to use. MonoDetour also borrows Prefix and Postfix patches from Harmony, which means less code to write.
+
+### Avoiding Common Pitfalls
+
+MonoDetour solves most of the Harmony problems I listed with HookGen. This means that MonoDetour can generate hook helpers to easily hook methods and figure out what you can do in the hook, right in your IDE! Gone are the days of failing to hook a method due to a small mistake.
+
+MonoDetour also differentiates methods with overloads right in HookGen just like MonoMod, so they just as easy to hook as methods without overloads.
+
+<LinkCard
+  title="IEnumerator Hooking"
+  href="/hooking/ienumerators"
+  description="IEnumerator hooking is also a common issue which MonoDetour tries to solve by generating hooks specifically for them."
+/>
+
+### HookGen With Source Generators
+
+MonoMod's HookGen v1 works with Mono.Cecil and generates assemblies directly. These are external assemblies which are large as they contain all hooks for all types, except some hooks are missing, such as for properties.
+
+MonoDetour only generates hooks for types you tell it about, and the generated hooks stay in your assembly for maximum portability.
+
+<LinkCard
+  title="Read more about MonoDetour's HookGen"
+  href="/getting-started/hookgen"
+/>
+
+## Comparing Solutions
+
+Let's perform the same simple hook on the following method with MonoDetour, Harmony, MonoMod, and MonoMod with HookGen.
+The target type and method will be:
+
+```cs
+namespace Lib;
+
+public class TargetClass
+{
+    // We want to hook this.
+    public int TakeAndReturnInt(int number)
+    {
+        // Call this.PrintFoo() here
+        // and increment 'number' argument by one.
+        return number;
+    }
+
+    public void PrintFoo()
+    {
+        Console.WriteLine("Foo");
+    }
+}
+```
+
+### MonoDetour
+
+```cs
+[MonoDetourTargets<TargetClass>] // Generate hooks for the target class.
+static class TargetClassHook
+{
+    [MonoDetourHookInit] // Not required, but will use this as hook init method.
+    static void InitHook()
+    {
+        On.Lib.TargetClass.TakeAndReturnInt.Prefix(Prefix_TakeAndReturnInt);
+    }
+
+    static void Prefix_TakeAndReturnInt(ref On.Lib.TargetClass.TakeAndReturnInt.Params args)
+    {
+        args.self.PrintFoo();
+        args.number_1 += 1;
+    }
+}
+```
+
+### MonoDetour (Harmony Style)
+
+```cs
+[MonoDetourTargets<TargetClass>]
+static class TargetClassHook
+{
+    [MonoDetourHook<PrefixDetour>]
+    static void Prefix_TakeAndReturnInt(ref On.Lib.TargetClass.TakeAndReturnInt.Params args)
+    {
+        args.self.PrintFoo();
+        args.number_1 += 1;
+    }
+}
+```
+
+### Harmony
+
+```cs
+[HarmonyPatch(typeof(TargetClass))]
+static class TargetClassPatch
+{
+    [HarmonyPatch(nameof(TargetClass.TakeAndReturnInt))]
+    [HarmonyPrefix] // Could instead have function name be 'Prefix' but I don't like magic.
+    static void Prefix_TakeAndReturnInt(TargetClass __instance, ref int number)
+    {
+        __instance.PrintFoo();
+        number += 1;
+    }
+}
+```
+
+### MonoMod
+
+```cs
+static class TargetClassHook
+{
+    static Hook hookTakeAndReturnInt;
+
+    internal static void InitHook()
+    {
+        hookTakeAndReturnInt = new Hook(
+            typeof(TargetClass).GetMethod(nameof(TargetClass.TakeAndReturnInt)),
+            Hook_TakeAndReturnInt
+        );
+    }
+
+    static int Hook_TakeAndReturnInt(
+        Func<TargetClass, int, int> orig,
+        TargetClass self,
+        int number)
+    {
+        self.PrintFoo();
+        return orig(self, number + 1);
+    }
+}
+```
+
+### MonoMod With HookGen
+
+```cs
+static class TargetClassHook
+{
+    internal static void InitHook()
+    {
+        On.Lib.TargetClass.TakeAndReturnInt += Hook_TakeAndReturnInt;
+    }
+
+    static int Hook_TakeAndReturnInt(
+        On.Lib.TargetClass.orig_TakeAndReturnInt orig,
+        TargetClass self,
+        int number)
+    {
+        self.PrintFoo();
+        return orig(self, number + 1);
+    }
+}
+```
+
+## Conclusion
+
+It is up to you to decide if MonoDetour makes sense for you, as it is about preference in the end. Nevertheless MonoDetour tries its best to be as convenient and easy as possible.
+
+However if you are sold on MonoDetour, you can include MonoDetour into your existing projects that are using Harmony or MonoMod, as they are compatible with each other.
+
+Though, note that if you are using HookGen with MonoMod you may need to configure MonoDetour's Hook generation namespace to something other than `On` to avoid collisions with generated hooks.
+
+<LinkCard
+  title="Add MonoDetour to your project"
+  href="/getting-started/overview#adding-to-your-project"
+/>
