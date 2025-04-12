@@ -1,10 +1,9 @@
 ---
 import Default from "@astrojs/starlight/components/Head.astro";
-
 const ogImageUrl = new URL('/logo.webp', Astro.site);
 ---
 
-<Default><slot /></Default>
-
 <meta property="og:image" content={ogImageUrl} />
 <meta name="twitter:image" content={ogImageUrl} />
+<meta name="twitter:card" content="summary" />
+<Default><slot /></Default>
