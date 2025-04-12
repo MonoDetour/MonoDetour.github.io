@@ -36,7 +36,14 @@ export default defineConfig({
 			],
 			plugins: [
 				starlightLinksValidator(),
-				starlightThemeObsidian(),
+				starlightThemeObsidian({
+					debug: false,
+					sitemapConfig: {},
+					graphConfig: {},
+					backlinksConfig: {},
+					graph: false,
+					backlinks: false
+				}),
 			],
 			sidebar: [
 				{
