@@ -7,11 +7,22 @@ import starlightThemeObsidian from 'starlight-theme-obsidian'
 // https://astro.build/config
 export default defineConfig({
 	site: "https://monodetour.github.io",
-    integrations: [
-        starlight({
-            title: 'MonoDetour',
+	integrations: [
+		starlight({
+			title: 'MonoDetour',
+			head: [
+				{
+					tag: 'meta', attrs: { property: 'og:image', content: '/logo.webp' },
+				},
+				{
+					tag: 'meta', attrs: { property: 'twitter:image', content: '/logo.webp' },
+				},
+				{
+					tag: 'meta', attrs: { name: 'twitter:card', content: 'summary' },
+				}
+			],
 			credits: true,
-            logo: {
+			logo: {
 				src: './public/favicon.svg',
 			},
 			social: {
@@ -21,13 +32,13 @@ export default defineConfig({
 				baseUrl: "https://github.com/MonoDetour/MonoDetour.github.io/edit/main/"
 			},
 			customCss: [
-                './src/styles/global.css'
-            ],
+				'./src/styles/global.css'
+			],
 			plugins: [
 				starlightLinksValidator(),
 				starlightThemeObsidian(),
 			],
-            sidebar: [
+			sidebar: [
 				{
 					label: "Getting Started",
 					autogenerate: { directory: "getting-started" },
@@ -37,7 +48,7 @@ export default defineConfig({
 					autogenerate: { directory: "hooking" },
 				},
 			],
-        }),
-    ],
-    devToolbar: { enabled: false },
+		}),
+	],
+	devToolbar: { enabled: false },
 });
