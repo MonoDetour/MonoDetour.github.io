@@ -53,10 +53,10 @@ public class LibraryMethodsHooks
     static void Init()
     {
         // Add a prefix hook which runs at the start of the target method.
-        On.Lib.LibraryClass.TakeAndReturnInt.Prefix(Prefix_LibraryMethods_TakeAndReturnInt);
+        On.Lib.LibraryClass.TakeAndReturnInt.Prefix(Prefix_TakeAndReturnInt);
     }
 
-    static void Prefix_LibraryMethods_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
+    static void Prefix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
     {
         // As soon as LibraryClass.TakeAndReturnInt runs,
         // call its method PrintFoo with its instance.
@@ -76,9 +76,9 @@ We can also add a hook that runs at the end of a method:
 
 ```cs
 // Add a postfix hook which runs at the end of the target method.
-On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_LibraryMethods_TakeAndReturnInt);
+On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
 // ...
-static void Postfix_LibraryMethods_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
+static void Postfix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
 {
     Console.WriteLine("Hello from postfix hook!");
 }
@@ -86,7 +86,16 @@ static void Postfix_LibraryMethods_TakeAndReturnInt(ref TakeAndReturnInt.Params 
 
 ## Changing Return Value
 
-TODO: Currently not possible.
+To change a return value, your hook must be a Postfix. We can use the `returnValue` field for accessing and setting the return value.
+
+```cs
+On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
+
+private static void Postfix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
+{
+    args.returnValue += 50;
+}
+```
 
 ## Hooking Properties
 
