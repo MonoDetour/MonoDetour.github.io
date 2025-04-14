@@ -1,0 +1,44 @@
+---
+title: Introduction
+description: Get started with using MonoDetour for your .NET detouring needs!
+sidebar:
+  order: 2
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+MonoDetour is mainly designed to be used with HookGen. That is, MonoDetour generates helpers hooks to make hooking easy.
+
+You can use the generated hooks like so:
+
+```cs
+// Generate helper hooks for the target type.
+[MonoDetourTargets(typeof(SomeType))]
+class SomeTypeHooks
+{
+    // MonoDetourManager.InvokeHookInitializers will
+    // call methods marked with this attribute in types
+    // which have the MonoDetourTargetsAttribute.
+    [MonoDetourHookInit]
+    internal static void InitHooks()
+    {
+        // Note: this is using the default generated MonoDetourManager
+        // MonoDetour.HookGen.DefaultMonoDetourManager.Instance by default.
+        // Use it for managing your hooks.
+        On.SomeNamespace.SomeType.SomeMethod.Prefix(Prefix_SomeMethod);
+    }
+
+    private static void Prefix_SomeMethod(SomeType self, ref int number)
+    {
+        Console.WriteLine("Hello from Prefix hook!");
+    }
+}
+```
+
+<LinkCard
+  title="See more hook examples"
+  href="/hooking/normal-methods"
+/>
+
+MonoDetour entirely relies on `ILHook`s for hooking similar to HarmonyX. But instead of having monolithic `ILHook` methods like in HarmonyX, MonoDetour maps every hook to a unique `ILHook`.
+

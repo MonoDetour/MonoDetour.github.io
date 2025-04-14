@@ -18,15 +18,10 @@ If the size of generated hooks appears to become an issue, an IL post-processing
 We can tell MonoDetour which types to generate hooks for:
 
 ```cs
-[assembly: MonoDetourTargets<SomeType>]
-// or
 [assembly: MonoDetourTargets(typeof(SomeType))]
 // or
-[MonoDetourTargets<SomeType>]
-static class TargetTypeHooks { }
-// or
 [MonoDetourTargets(typeof(SomeType))]
-static class TargetTypeHooks { }
+static class SomeTypeHooks { }
 ```
 
 Then, MonoDetour's HookGen generates hooks like this:
@@ -44,41 +39,38 @@ The hooks MonoDetour generates look something like this:
 ```cs
 internal static class SomeMethod
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    public delegate void MethodParams(ref Params args);
+    public delegate void PrefixSignature(global::Namespace.SomeType self,
+        ref int number);
 
-    public ref struct Params
-    {
-        public global::SomeNamespace.SomeType self;
-    }
+    public delegate void PostfixSignature(global::Namespace.SomeType self,
+        ref int number,
+        ref bool returnValue);
 
-    public static global::MonoMod.RuntimeDetour.ILHook Prefix(
-        MethodParams args,
+    public static global::MonoMod.RuntimeDetour.ILHook Prefix(PrefixSignature hook,
         global::MonoDetour.MonoDetourManager? manager = null
-    ) => (manager ?? global::MonoDetour.HookGen.HookGenManager.Instance)
-            .HookGenReflectedHook(args, new(global::MonoDetour.DetourType.PrefixDetour));
+    ) => (manager ?? global::MonoDetour.HookGen.DefaultMonoDetourManager.Instance)
+            .Hook(Target(), hook.Method,
+                new(global::MonoDetour.DetourTypes.DetourType.PrefixDetour));
 
-    public static global::MonoMod.RuntimeDetour.ILHook Postfix(
-        MethodParams args,
+    public static global::MonoMod.RuntimeDetour.ILHook Postfix(PostfixSignature hook,
         global::MonoDetour.MonoDetourManager? manager = null
-    ) => (manager ?? global::MonoDetour.HookGen.HookGenManager.Instance)
-            .HookGenReflectedHook(args, new(global::MonoDetour.DetourType.PostfixDetour));
+    ) => (manager ?? global::MonoDetour.HookGen.DefaultMonoDetourManager.Instance)
+            .Hook(Target(), hook.Method,
+                new(global::MonoDetour.DetourTypes.DetourType.PostfixDetour));
 
-    public static global::MonoMod.RuntimeDetour.ILHook ILHook(
-        global::MonoMod.Cil.ILContext.Manipulator manipulator,
+    public static global::MonoMod.RuntimeDetour.ILHook ILHook(global::MonoMod.Cil.ILContext.Manipulator manipulator,
         global::MonoDetour.MonoDetourManager? manager = null
-    ) => (manager ?? global::MonoDetour.HookGen.HookGenManager.Instance)
+    ) => (manager ?? global::MonoDetour.HookGen.DefaultMonoDetourManager.Instance)
             .Hook(Target(), manipulator);
 
     public static global::System.Reflection.MethodBase Target()
     {
-        var type = typeof(global::SomeNamespace.SomeType);
+        var type = typeof(global::Namespace.SomeType);
         var method = type.GetMethod("SomeMethod", (global::System.Reflection.BindingFlags)~0, null, [
+            typeof(int),
         ], null);
-        if (method is null) ThrowHelper.ThrowMissingMethod("SomeNamespace.SomeType", "SomeMethod");
+        if (method is null) ThrowHelper.ThrowMissingMethod("Namespace.SomeType", "SomeMethod");
         return method;
     }
 }
 ```
-
-When a Hook method has a single parameter like the `Params` struct which exists in a type which also has a `public static global::System.Reflection.MethodBase Target()` method that returns the target method, `MonoDetourManager.HookGenReflectedHook` can gather all the information required for the hook and applies it.

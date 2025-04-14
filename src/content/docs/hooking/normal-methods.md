@@ -32,10 +32,8 @@ Let's generate hooks for the type:
 ```cs
 // Tell MonoDetour's HookGen to generate hooks
 // for the target type.
-[MonoDetourTargets<LibraryClass>]
-// Or use [MonoDetourTargets(typeof(LibraryClass))]
-// if the target type is static.
-public class LibraryMethodsHooks
+[MonoDetourTargets(typeof(LibraryClass))]
+public class LibraryClassHooks
 {
     // ...
 }
@@ -46,9 +44,12 @@ public class LibraryMethodsHooks
 Now we can get to hooking. A simple hook we can do is:
 
 ```cs
-[MonoDetourTargets<LibraryClass>]
-public class LibraryMethodsHooks
+[MonoDetourTargets(typeof(LibraryClass))]
+public class LibraryClassHooks
 {
+    // MonoDetourManager.InvokeHookInitializers will
+    // call methods marked with this attribute in types
+    // which have the MonoDetourTargetsAttribute.
     [MonoDetourHookInit]
     static void Init()
     {
@@ -56,19 +57,26 @@ public class LibraryMethodsHooks
         On.Lib.LibraryClass.TakeAndReturnInt.Prefix(Prefix_TakeAndReturnInt);
     }
 
-    static void Prefix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
-    {
+    static void Prefix_TakeAndReturnInt(LibraryClass self, ref int number)
+{
         // As soon as LibraryClass.TakeAndReturnInt runs,
         // call its method PrintFoo with its instance.
-        args.self.PrintFoo();
+        self.PrintFoo();
 
         // Increment the 'number' parameter by one.
-        args.number_1 += 1;
-
-        // Note that MonoDetour.HookGen adds the index
-        // of the target parameter to the parameter name.
-        // This is done to prevent name conflicts.
+        number += 1;
     }
+}
+```
+
+We can either call our `LibraryClassHooks.Init` method manually, or use the following to call all methods marked with `MonoDetourHookInit` attribute that are in types marked with the `MonoDetourTargets` attribute:
+
+```cs
+internal static void InitAllHooks()
+{
+    // Searches for types with MonoDetourTargets to go through and
+    // finds methods in them marked with MonoDetourHookInit and calls them.
+    DefaultMonoDetourManager.Instance.InvokeHookInitializers();
 }
 ```
 
@@ -78,7 +86,8 @@ We can also add a hook that runs at the end of a method:
 // Add a postfix hook which runs at the end of the target method.
 On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
 // ...
-static void Postfix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
+static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
+    ref int returnValue)
 {
     Console.WriteLine("Hello from postfix hook!");
 }
@@ -86,14 +95,15 @@ static void Postfix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
 
 ## Changing Return Value
 
-To change a return value, your hook must be a Postfix. We can use the `returnValue` field for accessing and setting the return value.
+To change a return value, your hook must be a Postfix. We can use the `returnValue` parameter for accessing and setting the return value.
 
 ```cs
 On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
 
-private static void Postfix_TakeAndReturnInt(ref TakeAndReturnInt.Params args)
+static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
+    ref int returnValue)
 {
-    args.returnValue += 50;
+    returnValue += 50;
 }
 ```
 
@@ -104,10 +114,10 @@ One thing to know though is that getter methods have a `get_` prefix, and setter
 
 ```cs
 // Hook the getter method:
-On.Lib.LibraryClass.get_IsTrue.Prefix(MyHook);
+On.Lib.LibraryClass.get_IsTrue.Prefix(Prefix_get_IsTrue);
 
 // Hook the setter method:
-On.Lib.LibraryClass.set_IsTrue.Prefix(MyHook);
+On.Lib.LibraryClass.set_IsTrue.Prefix(Prefix_set_IsTrue);
 // Note that if the property doesn't implement
 // a setter, there won't be a hook for it.
 ```

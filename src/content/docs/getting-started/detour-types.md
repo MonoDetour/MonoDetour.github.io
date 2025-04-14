@@ -31,20 +31,3 @@ public interface IMonoDetourHookEmitter
 ```
 
 In fact, this is how MonoDetour implements its detour types. while the `DetourType` enum is not extensible, that enum maps to MonoDetour's implementation classes for those detour types.
-
-If you prefer to use MonoDetour with attributes, there is `MonoDetourHookAttribute<T>` which can be used for directly specifying a detour type class which implements `IMonoDetourHookEmitter`. For example:
-
-```cs
-// MonoDetourManager.HookAll(System.Reflection.Assembly)
-// will hook methods in types marked with this attribute.
-// Also tells MonoDetour's HookGen to generate hooks for the type specified.
-[MonoDetourTargets<SomeType>]
-class SomeTypeHooks
-{
-    [MonoDetourHook<PrefixDetour>]
-    static void Prefix_SomeType_Method(ref On.Namespace.SomeType.Method.Params args)
-    {
-        Console.WriteLine("Hello from Prefix hook!");
-    }
-}
-```

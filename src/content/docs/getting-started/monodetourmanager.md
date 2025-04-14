@@ -9,15 +9,21 @@ Every hook made with MonoDetour is attached to a `MonoDetour.MonoDetourManager` 
 When no `MonoDetourManager` object is specified, MonoDetour will use the default `MonoDetour.HookGen.DefaultMonoDetourManager.Instance` it has generated for your assembly. You can use that manager for managing your hooks, or you can create your own managers.
 
 ```cs
-// Apply all hooks marked with [MonoDetourHook<T>]
-// which are in types that are marked with [MonoDetourTargets<T>]
-DefaultMonoDetourManager.Instance.HookAll();
+// Invoke hook initializers for this assembly
+// which are in types that are marked with [MonoDetourTargets]
+DefaultMonoDetourManager.Instance.InvokeHookInitializers();
 
-// Undo all applied hooks.
+// Applies all hooks belonging to this manager.
+// Note: By default, a MonoDetourManager won't have any hooks.
+// You need to initialize the hooks first, either calling them manually or using
+// MonoDetourManager.InvokeHookInitializers() or any of its overloads.
+DefaultMonoDetourManager.Instance.ApplyHooks();
+
+// Undoes all applied hooks belonging to this manager.
 DefaultMonoDetourManager.Instance.UndoHooks();
 
-// Cleans up, undoes and gets rid of all hooks.
-// Use this is you never want to see these hooks again.
+// Cleans up, undoes and gets rid of all hooks belonging to this manager.
+// Use this is you never want to see those hooks again.
 DefaultMonoDetourManager.Instance.DisposeHooks();
 
 // Get the hook list from this MonoDetourManager.

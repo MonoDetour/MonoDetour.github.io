@@ -38,10 +38,8 @@ Let's generate hooks for the type:
 ```cs
 // Tell MonoDetour's HookGen to generate hooks
 // for the target type.
-[MonoDetourTargets<LibraryClass>]
-// Or use [MonoDetourTargets(typeof(LibraryClass))]
-// if the target type is static.
-public class LibraryMethodsHooks
+[MonoDetourTargets(typeof(LibraryClass))]
+public class LibraryClassHooks
 {
     // ...
 }
