@@ -22,9 +22,6 @@ export default defineConfig({
 				}
 			],
 			credits: true,
-			logo: {
-				src: './public/favicon.svg',
-			},
 			social: {
 				github: "https://github.com/MonoDetour/MonoDetour",
 			},
