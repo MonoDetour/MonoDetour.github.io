@@ -90,6 +90,18 @@ MonoDetour only generates hooks for types you tell it about, and the generated h
   href="/getting-started/hookgen"
 />
 
+### Minimizing Damages
+
+MonoDetour is strict by default about target methods for hooks. If the targe method signature for a hook changes, MonoDetour throws as soon as the target method is attempted to be retrieved via reflection if it isn't found with the exact signature MonoDetour expects.
+
+While this may appear as a downside compared to Harmony which is much less strict, your hook not breaking when a signature changes for a method you are hooking can result in missing new possible issues. Throwing will help catch changes you would otherwise have missed.
+
+:::note
+MonoDetour *may* implement less strict hooking in the future as an option as it could be useful in some scenarios anyways, but right now it is not a priority.
+:::
+
+Additionally, Prefix and Postfix hooks which throw are caught by MonoDetour in an attempt to recover the target method from throwing and preventing as much damage as possible, and MonoDetour will immediately dispose of all hooks attached to the [MonoDetourManager](/getting-started/monodetourmanager) the hook is attached to. This is done to try prevent mods that are outdated or broken from an incompatibility from breaking a game for example.
+
 ## Comparing Solutions
 
 Let's perform the same simple hook on the following method with MonoDetour, Harmony, MonoMod, and MonoMod with HookGen.
@@ -117,7 +129,7 @@ public class TargetClass
 
 :::tip
 Use the tabs to see the same hook performed with each solution.  
-Read the comments to learn details about the hooks!
+Read the comments to learn details about them!
 :::
 
 <Tabs>
