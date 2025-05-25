@@ -51,6 +51,10 @@ export default defineConfig({
 					label: "Hooking",
 					autogenerate: { directory: "hooking" },
 				},
+				{
+					label: "ILHooking",
+					autogenerate: { directory: "ilhooking" },
+				},
 			],
 		}),
 	],

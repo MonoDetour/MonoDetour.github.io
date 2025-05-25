@@ -1,0 +1,152 @@
+---
+title: Introduction to ILHooking
+description: Learn about modifying methods on the CIL level with ILHooks.
+sidebar:
+  order: 0
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import { LinkCard } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+:::note
+This article expects that you have read the [hooking normal methods](/hooking/normal-methods) article.
+:::
+
+ILHooks are a way to modify the original methods on the **IL** (or **CIL**) level, which is what C# compiles to. This is how we can have full control over what the original method does.
+
+ILHooks should be generally used if you would need to reimplement part of the original method in a normal Hook. Using an ILHook in such a situation will result in better compatibility with other mods that modify the same method. However, do notice that if for example two mods try to modify the same IL code, it could still lead into an incompatibility between the two mods.
+
+When writing ILHooks, it is important to know the IL instructions you are dealing with, as a single difference in the behavior of an instruction could lead to an error. For example, `brtrue` will jump to a different instruction if value from stack is non-zero and will also pop the value from the stack, and just replacing it with a `br` (branch unconditionally) will result in an error because it doesn't pop a value like `brtrue` does. So in this case we could for example emit a `pop` instruction to keep our IL code valid.
+
+## Useful Resources
+
+It's a good idea to keep this documentation with you whenever you are ILHooking.
+
+- [CIL OpCodes — Official Documentation](<https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes?view=net-10.0#fields>)
+- [List of CIL instructions — Wikipedia](<https://en.wikipedia.org/wiki/List_of_CIL_instructions>)
+
+Other articles which discuss ILHooking:
+
+- [ILHook Examples — Lethal Company Modding Wiki](<https://lethal.wiki/dev/fundamentals/patching-code/monomod-examples#ilhook-examples>)
+- [ILHooking — Risk of Rain 2 Modding Wiki](<https://risk-of-thunder.github.io/R2Wiki/Mod-Creation/C%23-Programming/IL-Hooking/>)
+
+
+## ILHook Behavior
+
+An ILHook does **not** behave like a normal hook. An ILHook is more like a processing step which takes in a method's blueprints and modifies it. After that the method is built, and it has the changes of the ILHook applied to it.
+
+When more ILHooks are applied to the method, the processing steps all run again on a new copy of the method, applying the ILHooks in the order of their configured priority.
+
+## CIL Evaluation Stack
+
+CIL is actually fairly simple. The most important concept to know is the [stack](<https://en.wikipedia.org/wiki/Stack_(abstract_data_type)>). The other part is the stack behavior of individual instructions. But that part is easy, just look at the links in [Useful Resources](#useful-resources) above.
+
+So, what is the evaluation stack? Let's start with an example.
+
+We have a simple method which returns `"Hello, World!"`. The instructions for that method look like this:
+
+```cs
+IL_0000: ldstr "Hello, World!"
+IL_0005: ret
+```
+
+First, let's explain what's going on.
+
+The `IL_XXXX:` at the start of each line is the IL offset for each instruction. You generally don't need to worry about these, other than that they are especially useful in stack traces to figure out what threw in a method if there are no debug symbols available, which is usually the case for games.
+
+The right side of the instructions shows two parts: an OpCode and an Operand.
+[`ldstr`](<https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes.ldstr?view=net-10.0#system-reflection-emit-opcodes-ldstr>) and [`ret`](<https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes.ret?view=net-10.0#system-reflection-emit-opcodes-ret>) here are OpCodes, and you should look them up right now to learn more about them than this article explains.
+
+The `ldstr` instruction has `"Hello, World!"` as the Operand. Not all OpCodes have Operands, such as the `ret`. Note how the instructions isn't like this:
+
+```cs
+IL_0000: ret "Hello, World!"
+```
+
+If you read how the `ret` OpCode behaves, you would understand why:
+
+> The stack transitional behavior, in sequential order, is:
+>
+> 1. The return value is popped from the callee evaluation stack.
+> 2. The return value obtained in step 1 is pushed onto the caller evaluation stack.
+>
+> If the return value is not present on the callee evaluation stack, no value is returned (no stack transition behaviors for either the callee or caller method).
+
+Also note:
+
+> The type of the return value, if any, of the current method determines the type of value to be fetched from the top of the stack and copied onto the stack of the method that called the current method. **The evaluation stack for the current method must be empty except for the value to be returned.**
+
+Now, what does the `ldstr` OpCode say?
+
+> The stack transitional behavior, in sequential order, is:
+>
+> 1. An object reference to a string is pushed onto the stack.
+
+Okay now you hopefully somewhat understand what's going on. Let's visualize the stack, adding some new instructions to the mix:
+
+```cs
+IL_0000: nop                    // stack: (empty)
+IL_0001: ldstr "Hello, World!"  // stack: "Hello, World!"
+IL_0006: ldc.i4.0               // stack: "Hello, World!", 0
+IL_0007: nop                    // stack: "Hello, World!", 0
+IL_0008: pop                    // stack: "Hello, World!"
+IL_0009: ret                    // stack: (empty)
+```
+
+The `nop` instruction does nothing, `ldc.i4.0` pushes int 0 to the stack, and `pop` pops a value from the stack. As long as every instruction gets values from the stack it likes and the evaluation stack only has the return value as the only thing on the stack when we return, we are fine.
+
+## Example ILHook
+
+Let's say we want to hook the first example, where `"Hello, World!"` is pushed to the stack and then returned right after. We want to change the string to `"ILHooked!"`
+
+The following example is written using the `ILWeaver` API from MonoDetour. Note that you don't need to use it, although it's recommended as it's essentially a redesign of the `ILCursor` API from MonoMod, aiming to remove a lot of the ambiguity and potentially confusing behavior. Right now you aren't expected to know how the `ILWeaver` API works, that will be explained in later articles in further detail.
+
+```cs
+// Tip: Always describe:
+// 1. Why your ILHook exists
+// 2. What it does
+
+/// <summary>
+/// Replaces the return value of ReturnHelloWorld `"Hello World!"`
+/// with `"ILHooked!"` as an example.
+/// </summary>
+static void ILHook_ReturnHelloWorld(ILManipulationInfo info)
+{
+    // Create a new ILWeaver for manipulation
+    ILWeaver w = new(info);
+
+    // Position weaver to to the ldstr instruction we are looking for
+    ILWeaverResult result = w.MatchRelaxed(x =>
+        x.MatchLdstr("Hello, World!") && w.SetCurrentTo(x)
+    );
+
+    // If the instruction wasn't found, maybe the target method changed
+    // or was manipulated by another ILHook, then throw
+    result.ThrowIfFailure();
+
+    // Set the Operand on the Current instruction
+    w.Current.Operand = "ILHooked!";
+}
+```
+
+The `ILWeaver` can also be chained, so the same method could be written as:
+
+```cs
+static void ILHook_ReturnHelloWorld(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    w.MatchRelaxed(x => x.MatchLdstr("Hello, World!") && w.SetCurrentTo(x))
+        .ThrowIfFailure()
+        .Current.Operand = "ILHooked!";
+}
+```
+
+Of course we also need to apply the ILHook. It'd be applied something like this:
+
+```cs
+On.SomeNamespace.SomeType.ReturnHelloWorld.ILHook(ILHook_ReturnHelloWorld);
+```
+
+And as a reminder, see [ILHook Behaviour](#ilhook-behavior) earlier in this article.
