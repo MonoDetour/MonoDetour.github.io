@@ -27,4 +27,27 @@ MonoDetour.ILWeaver is not required to be used, although is recommended.
 
 ## Adding to Your Project
 
-Right now, you can't add MonoDetour to your project. It will be possible once MonoDetour releases, as right now it's not stable.
+:::caution
+This library is not fully released, and things *will* change.
+
+- Bugs and missing functionality is expected
+- Documentation may not reflect reality
+
+Major things missing for you may be:
+
+- Currently there is no HarmonyX interoperability
+  - Hooks that change control flow (HarmonyX prefix return false) will ignore MonoDetour/HarmonyX
+:::
+
+Add this to your csproj, changing the version number to optimally the newest:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="MonoDetour.HookGen" Version="0.1.1-*" PrivateAssets="all" />
+  <PackageReference Include="MonoDetour" Version="0.1.1-*" />
+</ItemGroup>
+```
+
+MonoDetour.HookGen will automatically bring in the oldest MonoDetour reference it supports, so it's a good idea to specify the version for both.
+
+Additionally MonoDetour automatically brings in the oldest MonoMod.RuntimeDetour version it supports, so also specify its version to the one you want (or don't if it's included by e.g. BepInEx references). MonoDetour should support MonoMod.RuntimeDetour versions 21.12.13.1 and 25.*, with possibly anything in between.
