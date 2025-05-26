@@ -10,7 +10,7 @@ This article expects that you have read the [hooking normal methods](/hooking/no
 :::
 
 :::tip
-If you just want the answer, see the answer on the [bottom of this page](#different-ways-of-hooking).
+If you just want the answer, see the answer on the [bottom of this page](#conclusion).
 :::
 
 IEnumerator methods are quite special. A simple IEnumerator method such as this:
@@ -125,7 +125,28 @@ So, how do we hook the end of the `IEnumerator` object?
 
 ## Hooking The IEnumerator
 
-As you should remember, the `ContainingType.GetMessages()` method returns the
+There are two main ways to hook an enumerator:
+
+1. Replace the returned enumerator with our own, wrapping the original
+2. Hook MoveNext directly
+
+The first option would be more straightforward due to compiler generated enumerator classes being unspeakable in C#. However, it has a major issue: inlining. This is why MonoDetour goes with option 2 as the built-in solution.
+
+Let's go through both solutions anyways:
+
+### 1. Wrap The Enumerator
+
+Because of how small methods that construct and return an enumerator class usually are, the JIT compiler uses an optimization where it essentially copies the small method to a calling method. This happens if the a method which calls the enumerator getter method gets compiled before you hook the enumerator getter method.
+
+The issue here is that if the target method is inlined, hooks applied to it won't run where the target method has been inlined.
+
+To combat the issue, you could ILHook the method that got the method call inlined to recompile it after you've hooked the enumerator getter method. It's also worth nothing that MonoMod disables inlining for hooked methods, although that won't help when the inlining happens before hooking.
+
+Alternatively you could attach an `[MethodImpl(MethodImplOptions.NoInlining)]` attribute to the target method before the target assembly is loaded by the runtime. You could do this for example in a BepInEx preloader patcher using Mono.Cecil.
+
+### Solution: Wrap The Enumerator
+
+The `ContainingType.GetMessages()` method returns the
 enumerable object. We can actually hook the end of that method and take the
 `IEnumerator` object the method would have returned, and instead we make the
 method return our own `IEnumerator`!
@@ -152,16 +173,21 @@ static class MyHooks
     internal static void InitHooks()
     {
         // This hook inserts a call to our wrapper method like in the above demonstration.
-        On.Namespace.ContainingClass.GetMessages.IEnumeratorDetour(Wrapper_GetMessages);
+        On.Namespace.ContainingClass.GetMessages.Postfix(Wrapper_GetMessages);
     }
 
-    // This wrapper method takes the original enumerator and
+    // This postfix hook takes the original enumerator and
     // returns its own enumerator object which wraps the original.
-    static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> enumerator)
+    static void Postfix_GetMessages(ref IEnumerator<string> returnValue)
     {
-        while (enumerator.MoveNext())
+        returnValue = Wrapper_GetMessages(returnValue);
+    }
+
+    static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> original)
+    {
+        while (original.MoveNext())
         {
-            yield return enumerator.Current;
+            yield return original.Current;
         }
     }
 }
@@ -201,56 +227,93 @@ private bool MoveNext()
 }
 ```
 
-## Different Ways of Hooking
+### 2. Hook MoveNext Directly
 
-MonoDetour offers multiple ways of hooking IEnumerator methods, all of which are listed here.
+In this solution, we find the enumerator object's `MoveNext` method and hook that. This is unlikely to suffer from inlining, but as mentioned above, the class is unspeakable. In reality, the example class above is named `<GetMessages>d__0`, not `_GetMessages_d__0`. This is not valid C# however. So the best we can do is reference the instance as an interface it implements, for example `IEnumerator<string>`.
 
-- Wrap the entire enumerator, getting full control over enumeration:
+The obvious issue here is that we have no easy way of accessing the enumerator class' fields. We can try working around that issue with Reflection though. And in fact, MonoDetour does its best to make this experience rather seamless.
+
+### Solution: Hook MoveNext Directly
+
+The `PrefixMoveNext` and `PostfixMoveNext` methods simply apply the hook to the MoveNext method of the enumerator. The only magic MonoDetour does here is the `SpeakableEnumerator<string> self` argument which wraps the `IEnumerator<string>` representation of the enumerator instance in this case. This allows accessing the normally-unspeakable fields of the type.
+
+Additionally, the `ref bool continueEnumeration` parameter on the postfix is just `returnValue` but named to be more appropriate for the MoveNext method.
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.IEnumeratorDetour(Wrapper_GetMessages);
+On.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
+On.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
 // ...
-private static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> enumerator)
+static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
 {
-    // Prefix here...
+    // Return if state is not 0, aka
+    // the enumeration had already stated.
+    if (self.State != 0)
+    {
+        return;
+    }
 
-    while (enumerator.MoveNext())
-        yield return enumerator.Current;
+    // Code here runs only at the beginning of enumeration...
+}
 
-    // Postfix here...
+static void Postfix_GetMessages_MoveNext(
+    SpeakableEnumerator<string> self,
+    ref bool continueEnumeration
+)
+{
+    // Return if MoveNext returned true,
+    // aka enumeration will continue
+    if (continueEnumeration)
+    {
+        return;
+    }
+
+    // MoveNext returned false, we are
+    // now at the end of the enumeration!
+
+    // Code here runs only at the end of enumeration...
+
 }
 ```
 
-- Prefix at the start of the enumerator:
+## Conclusion
+
+Enumerator methods can be hooked multiple ways, but hooking the MoveNext method is recommended by MonoDetour.
+
+- Prefix on the MoveNext method:
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.IEnumeratorPrefix(Prefix_GetMessages);
+On.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
 // ...
-private static void Prefix_GetMessages(IEnumerator<string> enumerator)
+static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
 {
-    // Remember, enumerator.Current will be null here since we are in a prefix!
+    // This runs at the beginning of every MoveNext call
 }
 ```
 
-- Postfix at the end of the enumerator:
+> See [Solution: Hook MoveNext Directly](#solution-hook-movenext-directly) for only running once at the start of the whole enumeration.
+
+- Postfix on the MoveNext method:
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.IEnumeratorPostfix(Postfix_GetMessages);
-// ...
-private static void Postfix_GetMessages(IEnumerator<string> enumerator)
+On.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
+// ---
+static void Postfix_GetMessages_MoveNext(
+    SpeakableEnumerator<string> self,
+    ref bool continueEnumeration
+)
 {
-    var current = enumerator.Current;
+    // This runs at the end of every MoveNext call
 }
 ```
+
+> See [Solution: Hook MoveNext Directly](#solution-hook-movenext-directly) for only running once at the end of the whole enumeration.
 
 - ILHook the MoveNext method:
 
 ```cs
-// The target class will look something like this.
-// It is autogenerated and looks messy.
-On.Namespace.ContainingClass._GetMessages_d__0.MoveNext.ILHook(ILHook_GetMessages_MoveNext);
+On.Namespace.ContainingClass.GetMessages.ILHookMoveNext(ILHook_GetMessages_MoveNext);
 // ...
-private static void ILHook_GetMessages_MoveNext(ILContext il)
+static void ILHook_GetMessages_MoveNext(ILManipulationInfo info)
 {
     // Manipulate the MoveNext method here,
     // for example change the strings that are returned.
