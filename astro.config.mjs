@@ -12,10 +12,10 @@ export default defineConfig({
 			title: 'MonoDetour',
 			head: [
 				{
-					tag: 'meta', attrs: { property: 'og:image', content: '/logo.webp' },
+					tag: 'meta', attrs: { property: 'og:image', content: 'https://monodetour.github.io/logo.webp' },
 				},
 				{
-					tag: 'meta', attrs: { property: 'twitter:image', content: '/logo.webp' },
+					tag: 'meta', attrs: { property: 'twitter:image', content: 'https://monodetour.github.io/logo.webp' },
 				},
 				{
 					tag: 'meta', attrs: { name: 'twitter:card', content: 'summary' },
