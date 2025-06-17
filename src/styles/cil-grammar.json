@@ -4,6 +4,21 @@
     "scopeName": "source.cil",
     "patterns": [
         {
+            "begin": "//",
+            "end": "$",
+            "name": "comment.line.double-dash.cil"
+        },
+        {
+            "name": "comment.block.cil",
+            "begin": "/\\*",
+            "end": "\\*/"
+        },
+        {
+            "name": "string.quoted.cil",
+            "begin": "\"",
+            "end": "\""
+        },
+        {
             "match": "^\\s*(.assembly|.module|.class|.maxstack|.hash|.method|.imagebase|.stackreserve|.subsystem|.corflags|.publickeytoken|.custom|.entrypoint)\\b",
             "name": "keyword.control"
         },
@@ -12,21 +27,32 @@
             "name": "constant.language"
         },
         {
-            "name": "entity.name.tag.cil",
-            "match": "\\bIL_[0-9A-Fa-f]+\\b"
+            "name": "storage.type.primitive.cil",
+            "match": "\\b(?:void|bool|char|int8|int16|int32|int64|uint8|uint16|uint32|uint64|float32|float64|native|object|string|typedref)\\b"
         },
         {
-            "name": "keyword.opcode.cil",
-            "match": "(?<=: \\s*)\\S+"
-        },
-        {
-            "name": "string.quoted.cil",
-            "begin": "\"",
-            "end": "\""
+            "name": "storage.modifier.cil",
+            "match": "\\b(?:class|valuetype|enum|interface)\\b"
         },
         {
             "name": "constant.numeric.cil",
             "match": "\\b(?:0x[0-9A-Fa-f]+|[0-9]+(?:\\.[0-9]+)?)\\b"
+        },
+        {
+            "begin": "^\\s*(IL_[0-9A-Fa-f]+):\\s*(\\S+)",
+            "beginCaptures": {
+                "1": {
+                    "name": "entity.name.tag.cil"
+                },
+                "2": {
+                    "name": "keyword.opcode.cil"
+                }
+            },
+            "end": "(?=\\s|$)"
+        },
+        {
+            "name": "entity.name.tag.cil",
+            "match": "\\bIL_[0-9A-Fa-f]+\\b"
         },
         {
             "name": "meta.method.reference.cil",
@@ -51,11 +77,6 @@
                     "name": "variable.other.field.cil"
                 }
             }
-        },
-        {
-            "begin": "//",
-            "end": "$",
-            "name": "comment.line.double-dash.cil"
         }
     ]
 }
