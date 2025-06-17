@@ -1,0 +1,61 @@
+{
+    "displayName": "CIL",
+    "name": "cil",
+    "scopeName": "source.cil",
+    "patterns": [
+        {
+            "match": "^\\s*(.assembly|.module|.class|.maxstack|.hash|.method|.imagebase|.stackreserve|.subsystem|.corflags|.publickeytoken|.custom|.entrypoint)\\b",
+            "name": "keyword.control"
+        },
+        {
+            "match": "\\b(public|private|auto|ansi|beforefieldinit|static|hidebysig|specialname|rtspecialname|instance|cil|managed)\\b",
+            "name": "constant.language"
+        },
+        {
+            "name": "entity.name.tag.cil",
+            "match": "\\bIL_[0-9A-Fa-f]+\\b"
+        },
+        {
+            "name": "keyword.opcode.cil",
+            "match": "(?<=: \\s*)\\S+"
+        },
+        {
+            "name": "string.quoted.cil",
+            "begin": "\"",
+            "end": "\""
+        },
+        {
+            "name": "constant.numeric.cil",
+            "match": "\\b(?:0x[0-9A-Fa-f]+|[0-9]+(?:\\.[0-9]+)?)\\b"
+        },
+        {
+            "name": "meta.method.reference.cil",
+            "match": "\\b(\\S+)::(\\S+)(?=\\()",
+            "captures": {
+                "1": {
+                    "name": "entity.name.type.cil"
+                },
+                "2": {
+                    "name": "entity.name.function.cil"
+                }
+            }
+        },
+        {
+            "name": "meta.field.reference.cil",
+            "match": "\\b(\\S+)::([^\\(\\s]+)",
+            "captures": {
+                "1": {
+                    "name": "entity.name.type.cil"
+                },
+                "2": {
+                    "name": "variable.other.field.cil"
+                }
+            }
+        },
+        {
+            "begin": "//",
+            "end": "$",
+            "name": "comment.line.double-dash.cil"
+        }
+    ]
+}

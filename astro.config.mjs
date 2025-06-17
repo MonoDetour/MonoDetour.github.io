@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator'
 import starlightThemeObsidian from 'starlight-theme-obsidian'
+import fs from 'node:fs'
 
 // https://astro.build/config
 export default defineConfig({
@@ -10,6 +11,11 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'MonoDetour',
+			expressiveCode: {
+				shiki: {
+					langs: [async () => JSON.parse(fs.readFileSync('./src/styles/cil-grammar.json', 'utf-8'))],
+				},
+			},
 			head: [
 				{
 					tag: 'meta', attrs: { property: 'og:image', content: 'https://monodetour.github.io/logo.webp' },

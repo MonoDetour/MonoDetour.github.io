@@ -46,7 +46,7 @@ So, what is the evaluation stack? Let's start with an example.
 
 We have a simple method which returns `"Hello, World!"`. The instructions for that method look like this:
 
-```cs
+```cil
 IL_0000: ldstr "Hello, World!"
 IL_0005: ret
 ```
@@ -60,7 +60,7 @@ The right side of the instructions shows two parts: an OpCode and an Operand.
 
 The `ldstr` instruction has `"Hello, World!"` as the Operand. Not all OpCodes have Operands, such as the `ret`. Note how the instructions isn't like this:
 
-```cs
+```cil
 IL_0000: ret "Hello, World!"
 ```
 
@@ -85,7 +85,7 @@ Now, what does the `ldstr` OpCode say?
 
 Okay now you hopefully somewhat understand what's going on. Let's visualize the stack, adding some new instructions to the mix:
 
-```cs
+```cil
 IL_0000: nop                    // stack: (empty)
 IL_0001: ldstr "Hello, World!"  // stack: "Hello, World!"
 IL_0006: ldc.i4.0               // stack: "Hello, World!", 0
