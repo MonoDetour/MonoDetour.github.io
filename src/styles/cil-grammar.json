@@ -42,7 +42,7 @@
             "begin": "^\\s*(IL_[0-9A-Fa-f]+):\\s*(\\S+)",
             "beginCaptures": {
                 "1": {
-                    "name": "entity.name.tag.cil"
+                    "name": "entity.name.label.cil"
                 },
                 "2": {
                     "name": "keyword.opcode.cil"
@@ -51,7 +51,7 @@
             "end": "(?=\\s|$)"
         },
         {
-            "name": "entity.name.tag.cil",
+            "name": "entity.name.label.cil",
             "match": "\\bIL_[0-9A-Fa-f]+\\b"
         },
         {
