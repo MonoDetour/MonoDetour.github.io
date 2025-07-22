@@ -7,6 +7,8 @@ sidebar:
 
 import { LinkCard } from '@astrojs/starlight/components';
 
+MonoDetour is a .NET detouring library powered by [MonoMod.RuntimeDetour](<https://github.com/MonoMod/MonoMod>). What this means is that MonoDetour can be used to [insert hooks before and after methods](/hooking/normal-methods), and [modify their CIL instructions](/ilhooking/introduction) at runtime.
+
 MonoDetour is mainly designed to be used with HookGen. That is, MonoDetour generates helpers hooks to make hooking easy.
 
 You can use the generated hooks like so:
@@ -36,9 +38,16 @@ class SomeTypeHooks
 ```
 
 <LinkCard
-  title="See more hook examples"
+  title="See More Hook Examples"
   href="/hooking/normal-methods"
 />
 
 MonoDetour entirely relies on `ILHook`s for hooking similar to HarmonyX. But instead of having monolithic `ILHook` methods like in HarmonyX, MonoDetour maps every hook to a unique `ILHook`.
 
+MonoDetour achieves this by creating a small framework for ILHook wrappers, which it then uses to implement 3 basic detour types.
+
+<LinkCard
+  title="Detour Types"
+  description="Learn more about MonoDetour's detour type system."
+  href="/getting-started/detour-types"
+/>

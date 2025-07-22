@@ -11,23 +11,37 @@ MonoDetour has 3 built-in detour types. These are:
 - **PostfixDetour**: A hook which runs at the end of a method
 - **ILHookDetour**: A regular MonoMod `ILHook`, capable of modifying methods on the CIL level
 
-MonoDetour also supports custom detour types with types that implement `IMonoDetourHookEmitter`:
+MonoDetour also supports custom detour types with types that implement `IMonoDetourHookApplier`:
 
 ```cs
-public interface IMonoDetourHookEmitter
+/// <summary>
+/// A type which implements this interface can be used as a
+/// detour type, meaning the type can be passed in as a parameter to
+/// <see cref="MonoDetourConfig"/>.<br/>
+/// <br/>
+/// MonoDetour uses this to implement <see cref="PrefixDetour"/>,
+/// <see cref="PostfixDetour"/> and <see cref="ILHookDetour"/>.
+/// If none of the available detour types satisfy your needs,
+/// you can implement your own. See any of the implemented detour types for reference.
+/// </summary>
+/// <remarks>
+/// For MonoDetour to be able to use a type which implements this
+/// interface, the type must have a parameterless constructor.
+/// </remarks>
+public interface IMonoDetourHookApplier
 {
     /// <summary>
     /// All the available metadata for the MonoDetour Hook.
     /// </summary>
-    MonoDetourInfo Info { get; set; }
+    IReadOnlyMonoDetourHook Hook { get; set; }
 
     /// <summary>
     /// The <see cref="ILContext.Manipulator"/> method that is called
     /// when the ILHook is applied.
     /// </summary>
     /// <param name="il">The <see cref="ILContext"/> passed for manipulating the target method.</param>
-    void Manipulator(ILContext il);
+    void ApplierManipulator(ILContext il);
 }
 ```
 
-In fact, this is how MonoDetour implements its detour types. while the `DetourType` enum is not extensible, that enum maps to MonoDetour's implementation classes for those detour types.
+In fact, this is how MonoDetour implements its detour types.
