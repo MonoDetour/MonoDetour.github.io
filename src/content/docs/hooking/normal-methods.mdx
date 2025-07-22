@@ -77,8 +77,8 @@ We can either call our `LibraryClassHooks.Init` method manually, or use the foll
 internal static void InitAllHooks()
 {
     // Searches for types with MonoDetourTargets to go through and
-    // finds methods in them marked with MonoDetourHookInitialize and calls them.
-    DefaultMonoDetourManager.Instance.InvokeHookInitializers();
+    // finds methods in them marked with MonoDetourHookInitialize and invokes them.
+    MonoDetourManager.InvokeHookInitializers(Assembly.GetExecutingAssembly());
 }
 ```
 

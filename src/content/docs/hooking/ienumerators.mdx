@@ -168,9 +168,11 @@ public static class ContainingClass
 ```
 ```cs
 // The following would be in your code:
+[MonoDetourTargets(typeof(ContainingClass))]
 static class MyHooks
 {
-    internal static void InitHooks()
+    [MonoDetourHookInitialize]
+    static void Init()
     {
         // This hook inserts a call to our wrapper method like in the above demonstration.
         On.Namespace.ContainingClass.GetMessages.Postfix(Wrapper_GetMessages);
