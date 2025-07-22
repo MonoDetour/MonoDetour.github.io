@@ -11,12 +11,12 @@ When no `MonoDetourManager` object is specified, MonoDetour will use the default
 ```cs
 // Invoke hook initializers for this assembly
 // which are in types that are marked with [MonoDetourTargets]
-DefaultMonoDetourManager.Instance.InvokeHookInitializers();
+MonoDetourManager.InvokeHookInitializers(Assembly.GetExecutingAssembly());
 
 // Applies all hooks belonging to this manager.
 // Note: By default, a MonoDetourManager won't have any hooks.
 // You need to initialize the hooks first, either calling them manually or using
-// MonoDetourManager.InvokeHookInitializers() or any of its overloads.
+// MonoDetourManager.InvokeHookInitializers(Assembly) or any of its overloads.
 DefaultMonoDetourManager.Instance.ApplyHooks();
 
 // Undoes all applied hooks belonging to this manager.
