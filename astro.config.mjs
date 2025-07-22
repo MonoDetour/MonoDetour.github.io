@@ -12,6 +12,7 @@ export default defineConfig({
 		starlight({
 			title: 'MonoDetour',
 			expressiveCode: {
+				themes: ['dracula', 'one-light'],
 				shiki: {
 					langs: [async () => JSON.parse(fs.readFileSync('./src/styles/cil-grammar.json', 'utf-8'))],
 				},
@@ -28,9 +29,10 @@ export default defineConfig({
 				}
 			],
 			credits: true,
-			social: {
-				github: "https://github.com/MonoDetour/MonoDetour",
-			},
+			social: [
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MonoDetour/MonoDetour' },
+				{ icon: 'discord', label: 'Discord', href: 'https://discord.gg/cYgJszjzPw' }
+			],
 			editLink: {
 				baseUrl: "https://github.com/MonoDetour/MonoDetour.github.io/edit/main/"
 			},
