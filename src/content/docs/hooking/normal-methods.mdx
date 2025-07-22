@@ -5,6 +5,8 @@ sidebar:
   order: 0
 ---
 
+import { LinkCard } from '@astrojs/starlight/components';
+
 To start hooking, we need a target method we want to hook. So, given the target type and method we want to hook:
 
 ```cs
@@ -58,7 +60,7 @@ public class LibraryClassHooks
     }
 
     static void Prefix_TakeAndReturnInt(LibraryClass self, ref int number)
-{
+    {
         // As soon as LibraryClass.TakeAndReturnInt runs,
         // call its method PrintFoo with its instance.
         self.PrintFoo();
@@ -121,3 +123,10 @@ On.Lib.LibraryClass.set_IsTrue.Prefix(Prefix_set_IsTrue);
 // Note that if the property doesn't implement
 // a setter, there won't be a hook for it.
 ```
+
+<LinkCard
+  title="More Examples: MonoDetour.UnitTests/HookTests"
+  href="https://github.com/MonoDetour/MonoDetour/tree/main/tests/MonoDetour.UnitTests/HookTests"
+  description="MonoDetour's UnitTests can also be a great reference for MonoDetour usage!"
+  target="_blank"
+/>
