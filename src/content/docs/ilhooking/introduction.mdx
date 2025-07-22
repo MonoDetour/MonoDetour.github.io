@@ -58,7 +58,7 @@ The `IL_XXXX:` at the start of each line is the IL offset for each instruction. 
 The right side of the instructions shows two parts: an OpCode and an Operand.
 [`ldstr`](<https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes.ldstr?view=net-10.0#system-reflection-emit-opcodes-ldstr>) and [`ret`](<https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes.ret?view=net-10.0#system-reflection-emit-opcodes-ret>) here are OpCodes, and you should look them up right now to learn more about them than this article explains.
 
-The `ldstr` instruction has `"Hello, World!"` as the Operand. Not all OpCodes have Operands, such as the `ret`. Note how the instructions isn't like this:
+The `ldstr` instruction has `"Hello, World!"` as the Operand. Not all instructions have Operands, such as one with the `ret` OpCode. Note how the method's instructions aren't something like this:
 
 ```cil
 IL_0000: ret "Hello, World!"
