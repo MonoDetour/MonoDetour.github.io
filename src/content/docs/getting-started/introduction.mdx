@@ -19,7 +19,7 @@ class SomeTypeHooks
     // MonoDetourManager.InvokeHookInitializers will
     // call methods marked with this attribute in types
     // which have the MonoDetourTargetsAttribute.
-    [MonoDetourHookInit]
+    [MonoDetourHookInitialize]
     internal static void InitHooks()
     {
         // Note: this is using the default generated MonoDetourManager

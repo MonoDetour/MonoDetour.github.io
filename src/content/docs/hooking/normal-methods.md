@@ -50,7 +50,7 @@ public class LibraryClassHooks
     // MonoDetourManager.InvokeHookInitializers will
     // call methods marked with this attribute in types
     // which have the MonoDetourTargetsAttribute.
-    [MonoDetourHookInit]
+    [MonoDetourHookInitialize]
     static void Init()
     {
         // Add a prefix hook which runs at the start of the target method.
@@ -69,13 +69,13 @@ public class LibraryClassHooks
 }
 ```
 
-We can either call our `LibraryClassHooks.Init` method manually, or use the following to call all methods marked with `MonoDetourHookInit` attribute that are in types marked with the `MonoDetourTargets` attribute:
+We can either call our `LibraryClassHooks.Init` method manually, or use the following to call all methods marked with `MonoDetourHookInitialize` attribute that are in types marked with the `MonoDetourTargets` attribute:
 
 ```cs
 internal static void InitAllHooks()
 {
     // Searches for types with MonoDetourTargets to go through and
-    // finds methods in them marked with MonoDetourHookInit and calls them.
+    // finds methods in them marked with MonoDetourHookInitialize and calls them.
     DefaultMonoDetourManager.Instance.InvokeHookInitializers();
 }
 ```
