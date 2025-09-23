@@ -31,6 +31,7 @@ Will actually be turned into something like this by the C# compiler:
 ```cs
 public static class ContainingClass
 {
+    [IteratorStateMachine(typeof(_GetMessages_d__0))]
     public static IEnumerator<string> GetMessages()
     {
         return new _GetMessages_d__0(0);
@@ -86,11 +87,9 @@ even if the implementation behind the scenes isn't as simple.
 
 ## Understanding IEnumerators
 
-To understand all this, we need to know that
 [`IEnumerator<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerator-1)
-is an interface which supports a simple iteration over a generic collection. There also exists the
-non-generic counterpart,
-[`IEnumerator`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerator).
+and the non-generic counterpart [`IEnumerator`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerator)
+are interfaces which supports a simple iteration over a collection.
 
 While this might be new to you, you are actually making use of the `IEnumerator` interfaces
 when using `foreach` loops. The foreach loop can take in anything that implements
