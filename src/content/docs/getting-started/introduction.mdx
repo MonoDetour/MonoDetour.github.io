@@ -27,7 +27,7 @@ class SomeTypeHooks
         // Note: this is using the default generated MonoDetourManager
         // MonoDetour.HookGen.DefaultMonoDetourManager.Instance by default.
         // Use it for managing your hooks.
-        On.SomeNamespace.SomeType.SomeMethod.Prefix(Prefix_SomeMethod);
+        Md.SomeNamespace.SomeType.SomeMethod.Prefix(Prefix_SomeMethod);
     }
 
     private static void Prefix_SomeMethod(SomeType self, ref int number)

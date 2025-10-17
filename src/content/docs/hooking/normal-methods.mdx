@@ -56,7 +56,7 @@ public class LibraryClassHooks
     static void Init()
     {
         // Add a prefix hook which runs at the start of the target method.
-        On.Lib.LibraryClass.TakeAndReturnInt.Prefix(Prefix_TakeAndReturnInt);
+        Md.Lib.LibraryClass.TakeAndReturnInt.Prefix(Prefix_TakeAndReturnInt);
     }
 
     static void Prefix_TakeAndReturnInt(LibraryClass self, ref int number)
@@ -86,7 +86,7 @@ We can also add a hook that runs at the end of a method:
 
 ```cs
 // Add a postfix hook which runs at the end of the target method.
-On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
+Md.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
 // ...
 static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
     ref int returnValue)
@@ -100,7 +100,7 @@ static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
 To change a return value, your hook must be a Postfix. We can use the `returnValue` parameter for accessing and setting the return value.
 
 ```cs
-On.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
+Md.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
 
 static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
     ref int returnValue)
@@ -116,10 +116,10 @@ One thing to know though is that getter methods have a `get_` prefix, and setter
 
 ```cs
 // Hook the getter method:
-On.Lib.LibraryClass.get_IsTrue.Prefix(Prefix_get_IsTrue);
+Md.Lib.LibraryClass.get_IsTrue.Prefix(Prefix_get_IsTrue);
 
 // Hook the setter method:
-On.Lib.LibraryClass.set_IsTrue.Prefix(Prefix_set_IsTrue);
+Md.Lib.LibraryClass.set_IsTrue.Prefix(Prefix_set_IsTrue);
 // Note that if the property doesn't implement
 // a setter, there won't be a hook for it.
 ```

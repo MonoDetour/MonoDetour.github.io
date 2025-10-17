@@ -27,9 +27,9 @@ static class SomeTypeHooks { }
 Then, MonoDetour's HookGen generates hooks like this:
 
 ```cs
-On.SomeNamespace.SomeType.SomeMethod.Prefix(YourPrefixHookHere);
-On.SomeNamespace.SomeType.SomeMethod.Postfix(YourPostfixHookHere);
-On.SomeNamespace.SomeType.SomeMethod.ILHook(YourILHookHere);
+Md.SomeNamespace.SomeType.SomeMethod.Prefix(YourPrefixHookHere);
+Md.SomeNamespace.SomeType.SomeMethod.Postfix(YourPostfixHookHere);
+Md.SomeNamespace.SomeType.SomeMethod.ILHook(YourILHookHere);
 ```
 
 ## Behind The Scenes

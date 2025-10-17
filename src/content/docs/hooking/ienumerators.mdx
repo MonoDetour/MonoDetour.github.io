@@ -174,7 +174,7 @@ static class MyHooks
     static void Init()
     {
         // This hook inserts a call to our wrapper method like in the above demonstration.
-        On.Namespace.ContainingClass.GetMessages.Postfix(Wrapper_GetMessages);
+        Md.Namespace.ContainingClass.GetMessages.Postfix(Wrapper_GetMessages);
     }
 
     // This postfix hook takes the original enumerator and
@@ -241,8 +241,8 @@ The `PrefixMoveNext` and `PostfixMoveNext` methods simply apply the hook to the 
 Additionally, the `ref bool continueEnumeration` parameter on the postfix is just `returnValue` but named to be more appropriate for the MoveNext method.
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
-On.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
+Md.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
+Md.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
 // ...
 static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
 {
@@ -283,7 +283,7 @@ Enumerator methods can be hooked multiple ways, but hooking the MoveNext method 
 - Prefix on the MoveNext method:
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
+Md.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
 // ...
 static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
 {
@@ -296,7 +296,7 @@ static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
 - Postfix on the MoveNext method:
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
+Md.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
 // ---
 static void Postfix_GetMessages_MoveNext(
     SpeakableEnumerator<string> self,
@@ -312,7 +312,7 @@ static void Postfix_GetMessages_MoveNext(
 - ILHook the MoveNext method:
 
 ```cs
-On.Namespace.ContainingClass.GetMessages.ILHookMoveNext(ILHook_GetMessages_MoveNext);
+Md.Namespace.ContainingClass.GetMessages.ILHookMoveNext(ILHook_GetMessages_MoveNext);
 // ...
 static void ILHook_GetMessages_MoveNext(ILManipulationInfo info)
 {

@@ -146,7 +146,7 @@ static void ILHook_ReturnHelloWorld(ILManipulationInfo info)
 Of course we also need to apply the ILHook. It'd be applied something like this:
 
 ```cs
-On.SomeNamespace.SomeType.ReturnHelloWorld.ILHook(ILHook_ReturnHelloWorld);
+Md.SomeNamespace.SomeType.ReturnHelloWorld.ILHook(ILHook_ReturnHelloWorld);
 ```
 
 And as a reminder, see [ILHook Behaviour](#ilhook-behavior) earlier in this article.
