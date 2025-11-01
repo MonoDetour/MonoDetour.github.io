@@ -35,22 +35,50 @@ This library is not fully released, and things *will* change.
 
 - Bugs and missing functionality is expected
 - Documentation may not reflect reality
-
-Major things missing for you may be:
-
-- Currently there is no HarmonyX interoperability
-  - Hooks that change control flow (HarmonyX prefix return false) will ignore MonoDetour/HarmonyX
 :::
 
-Add this to your csproj, changing the version number to optimally the newest:
+Note: MonoDetour implements interop support for HarmonyX. This means that MonoDetour prefix and postfix hooks are aware of HarmonyX prefix and postfix hooks, and they respect each other.
+
+Add this to your csproj, changing the version number of MonoDetour.HookGen to optimally the newest:
+
 
 ```xml
 <ItemGroup>
   <PackageReference Include="MonoDetour.HookGen" Version="0.7.*" PrivateAssets="all" />
-  <PackageReference Include="MonoDetour" Version="0.*" />
+  <PackageReference Include="MonoDetour" Version="[*,2.0)" /> <!-- Highest version below 2.0 -->
 </ItemGroup>
 ```
+
+Current MonoDetour.HookGen version: [![MonoDetour.HookGen](https://img.shields.io/nuget/v/MonoDetour.HookGen?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/MonoDetour.HookGen)
+
+:::note
+If you are writing a plugin/mod for a mod loader, you likely can't decide the MonoDetour version at runtime.
+This is why we specify `[*,2.0)` as the range for `MonoDetour` to ensure you get the latest API reference because it will be present at runtime anyways (assuming you are depending on an officially shipped package. If not, see [Requesting a Package Upload](#requesting-a-package-upload)).
+
+Version `2.0` will be a breaking change (as defined by [SemVer](https://semver.org/)) and will be shipped as a separate package on e.g. Thunderstore which is why `2.0` is marked as the exclusive maximum version range so you get the highest version which is below `2.0`.
+
+Learn more about version ranges: [Microsoft Learn: Package versioning #Version ranges](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort#version-ranges)
+:::
 
 MonoDetour.HookGen will automatically bring in the oldest MonoDetour reference it supports, so it's a good idea to specify the version for both.
 
 Additionally MonoDetour automatically brings in the oldest MonoMod.RuntimeDetour version it supports, so also specify its version to the one you want (or don't if it's included by e.g. BepInEx references). MonoDetour should support MonoMod.RuntimeDetour versions 21.12.13.1 and 25.*, with possibly anything in between.
+
+## Requesting a Package Upload
+
+MonoDetour ships new package versions automatically for certain games on modding platforms like Thunderstore.
+You should not reupload MonoDetour if the upload can be automated.
+
+Requirements for upload for a new game/platform:
+
+- The platform must have a publishing API (e.g. Thunderstore)
+- The mod loader must ship MonoMod (e.g. BepInEx 5, BepInEx 6, MelonLoader)
+
+If your game/platform passes the above requirements, answer the following questions:
+
+- Which platform to publish it on? (e.g. Thunderstore)
+- Which game/community?
+- Which mod loader? (BepInEx 5, BepInEx 6, etc.)
+- Does MonoDetour work for the game? (MonoDetour currently only targets `netstandard2.0`)
+
+You can either open a new issue on [MonoDetour's GitHub](https://github.com/MonoDetour/MonoDetour) or leave a message on the Discord server: [![Discord](https://img.shields.io/discord/1377047282381361152?style=for-the-badge&label=Discord)](<https://discord.gg/cYgJszjzPw>)
