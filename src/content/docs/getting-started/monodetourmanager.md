@@ -27,5 +27,5 @@ DefaultMonoDetourManager.Instance.UndoHooks();
 DefaultMonoDetourManager.Instance.DisposeHooks();
 
 // Get the hook list from this MonoDetourManager.
-List<ILHook> ilHooks = DefaultMonoDetourManager.Instance.ILHooks;
+List<IMonoDetourHook> hooks = DefaultMonoDetourManager.Instance.Hooks;
 ```

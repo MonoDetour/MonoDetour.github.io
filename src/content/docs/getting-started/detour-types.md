@@ -16,8 +16,9 @@ MonoDetour also supports custom detour types with types that implement `IMonoDet
 ```cs
 /// <summary>
 /// A type which implements this interface can be used as a
-/// detour type, meaning the type can be passed in as a parameter to
-/// <see cref="MonoDetourConfig"/>.<br/>
+/// detour type, meaning the type can be passed in as a generic parameter
+/// to <see cref="MonoDetourHook"/> construction methods such as
+/// <see cref="MonoDetourManager.Hook{TApplier}(System.Reflection.MethodBase, System.Delegate, MonoDetour.MonoDetourConfig?, bool)"/>.<br/>
 /// <br/>
 /// MonoDetour uses this to implement <see cref="PrefixDetour"/>,
 /// <see cref="PostfixDetour"/> and <see cref="ILHookDetour"/>.
