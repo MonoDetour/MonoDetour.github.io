@@ -63,13 +63,15 @@ While I am the main target user of MonoDetour, I have designed the API so that i
 
 Taking everything I like from Harmony and MonoMod, we end up with MonoDetour.
 
-### Convenience Is Priority \#1
+### Convenience Is Top Priority
 
-If MonoDetour is not any more convenient than Harmony or MonoMod with HookGen in all cases, then it has failed. This ties in closely with being easy and intuitive to use. MonoDetour also borrows Prefix and Postfix patches from Harmony, which means less code to write.
+MonoDetour aims to be, in most cases, more convenient than Harmony or MonoMod.RuntimeDetour. This ties in closely with being easy and intuitive to use. MonoDetour also borrows Prefix and Postfix patches from Harmony, which means less code to write.
+
+MonoDetour is still pretty young and may be missing certain nice features like using a single prefix or postfix hook on multiple separate target methods, which is something Harmony can do. But eventually this will also be supported.
 
 ### Avoiding Common Pitfalls
 
-MonoDetour solves most of the Harmony problems I listed with HookGen. This means that MonoDetour can generate hook helpers to easily hook methods and figure out what you can do in the hook, right in your IDE! Gone are the days of failing to hook a method due to a small mistake.
+MonoDetour solves most of the Harmony problems I listed with HookGen. This means that MonoDetour can generate hook helpers to easily hook methods and figure out what you can do in the hook, right in your IDE! This means that failing to hook a method due to a small mistake for the most part should not happen.
 
 MonoDetour also differentiates methods with overloads right in HookGen just like in MonoMod so they are just as easy to hook as methods without overloads.
 
