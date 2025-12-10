@@ -28,12 +28,19 @@ public static class ContainingClass
 
 Will actually be turned into something like this by the C# compiler:
 
+:::note
+`<` and `>` in member names have been turned to `_` to make the code snippet valid C#.
+:::
+
 ```cs
 public static class ContainingClass
 {
     [IteratorStateMachine(typeof(_GetMessages_d__0))]
     public static IEnumerator<string> GetMessages()
     {
+        // All of this method's logic has been moved into the
+        // compiler generated IEnumerator state machine!
+        // This method only constructs and returns the IEnumerator object.
         return new _GetMessages_d__0(0);
     }
 
@@ -82,8 +89,10 @@ public static class ContainingClass
 }
 ```
 
-The initial version was just syntactic sugar C# gives for creating methods that can be iterated,
+The initial version with `yield return` was just syntactic sugar C# gives for creating methods that can be iterated,
 even if the implementation behind the scenes isn't as simple.
+
+C# decompilers by default usually attempt to reverse the compiler magic and only show what the original C# might have looked like, but when hooking, and especially [ILHooking](/ilhooking/introduction), the real compiler output is what we care about. C# decompilers usually have settings to decompile to a "lower level" C#, such as by setting the target decompilation to the most ancient C# version: 1.
 
 ## Understanding IEnumerators
 
@@ -174,7 +183,7 @@ static class MyHooks
     static void Init()
     {
         // This hook inserts a call to our wrapper method like in the above demonstration.
-        Md.Namespace.ContainingClass.GetMessages.Postfix(Wrapper_GetMessages);
+        Md.Namespace.ContainingClass.GetMessages.Postfix(Postfix_GetMessages);
     }
 
     // This postfix hook takes the original enumerator and
