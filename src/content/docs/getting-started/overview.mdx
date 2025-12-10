@@ -55,7 +55,7 @@ Current MonoDetour.HookGen version: [![MonoDetour.HookGen](https://img.shields.i
 If you are writing a plugin/mod for a mod loader, you likely can't decide the MonoDetour version at runtime.
 This is why we specify `[*,2.0)` as the range for `MonoDetour` to ensure you get the latest API reference because it will be present at runtime anyways (assuming you are depending on an officially shipped package. If not, see [Requesting a Package Upload](#requesting-a-package-upload)).
 
-Version `2.0` will be a breaking change (as defined by [SemVer](https://semver.org/)) and will be shipped as a separate package on e.g. Thunderstore which is why `2.0` is marked as the exclusive maximum version range so you get the highest version which is below `2.0`.
+Version `2.0` will be a breaking change (as defined by [SemVer](https://semver.org/)) and will be shipped as a separate package on e.g. Thunderstore which is why `2.0` is marked as the exclusive maximum version range so you get the highest version which is below `2.0`. That said, there are no plans for a `2.0` version and MonoDetour would prefer not to make such breaking changes if possible.
 
 Learn more about version ranges: [Microsoft Learn: Package versioning #Version ranges](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort#version-ranges)
 :::
