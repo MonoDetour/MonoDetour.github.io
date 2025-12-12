@@ -1,0 +1,176 @@
+---
+title: ILWeaver for ILCursor Users
+description: Learn the differences and similarities between ILWeaver and ILCursor.
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import { LinkCard } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+:::note
+This article is intended for developer who are familiar with MonoMod's [ILCursor](https://monomod.dev/api/MonoMod.Cil.ILCursor.html) API. However, you may still learn about ILWeaver even if you've never used ILCursor.
+:::
+
+## Why ILWeaver
+
+ILWeaver is partly a redesign of the [ILCursor](https://monomod.dev/api/MonoMod.Cil.ILCursor.html) API from MonoMod, aiming to remove a lot of the ambiguity and potentially confusing behavior. It focuses on being as user friendly as possible, such as providing very detailed exceptions in its instruction matching methods and more.
+
+This article also shows examples where ILWeaver is more convenient and easier to write correct ILHooks with than ILCursor.
+
+## Instruction Matching
+
+Instruction matching is the first step in almost any ILHook. We will go through common matching patterns and how to do them with ILWeaver.
+
+### Matching a Pattern Once
+
+With ILCursor, instruction matching is usually done with `GotoNext` or `TryGotoNext`.  
+With ILWeaver, the recommended and best method is `MatchRelaxed`. Note that this is not fully equivalent to `GotoNext`.
+
+<details>
+<summary>Match with ILCursor</summary>
+```cs
+static void ILHook_with_ILCursor(ILContext il)
+{
+    ILCursor c = new(il);
+
+    c.GotoNext(
+        MoveType.After,
+        x => x.MatchLdcI4(0),
+        x => x.MatchCall(((Delegate)Stub).Method)
+    );
+
+    c.Index--;
+
+    c.Emit(OpCodes.Ldc_I4_1);
+    c.Emit(OpCodes.Add);
+}
+```
+</details>
+
+<details>
+<summary>Match with ILWeaver</summary>
+```cs
+static void ILHook_with_MonoDetour_and_ILWeaver(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchLdcI4(0),
+        x => x.MatchCall(((Delegate)Stub).Method) && w.SetCurrentTo(x)
+    );
+
+    // We can throw or check if match succeeded and get the error message if we want.
+    result.ThrowIfFailure();
+
+    w.InsertBeforeCurrent(
+        w.Create(OpCodes.Ldc_I4_1),
+        w.Create(OpCodes.Add)
+    );
+}
+```
+</details>
+
+`MatchRelaxed` has several advantages compared to `GotoNext`:
+
+- No `MoveType.Before` or `MoveType.After`
+  - Directly grab all your target instructions in your predicates; no need for adjusting index
+- All predicates must be matched **exactly once** in the entire method; otherwise match fails
+  - It's impossible to match too early in the method because of too generic predicates
+- Match can succeed even if someone inserts or removes instructions where you are matching
+  - "Relaxed" in `MatchRelaxed` refers to the fact that if the initial match against the real instructions of the method fails, it's done against the "original" instructions
+  - If the above ILHooks using ILWeaver was applied twice on the same method, it would succeed both times
+  - If you absolutely need this not to happen and you have a good reason, use `MatchStrict`
+
+You can notice that ILWeaver is generally more verbose than ILCursor. However, this is what makes ILWeaver really flexible and mostly free of surprises. As a result, a lot of ILHooks made with ILWeaver will have a very similar structure: match, then remove or insert instructions.
+
+The above is mostly true for ILCursor too, however it usually requires "fighting" the API, such as offsetting the index of the cursor afterwards, or worse if you need more than one location from your match.
+
+### Matching a Repeating Pattern
+
+With ILCursor, matching a repeating pattern is usually done by repeating a `TryGotoNext` call until it returns false.  
+With ILWeaver, the intended method for this is `MatchMultipleRelaxed`.
+
+<details>
+<summary>Match Repeating Pattern with ILCursor</summary>
+```cs
+static void ILHook_with_ILCursor(ILContext il)
+{
+    ILCursor c = new(il);
+
+    while (
+        c.TryGotoNext(
+            MoveType.Before,
+            x => x.MatchCall<Assembly>(nameof(Assembly.GetTypes))
+        )
+    )
+    {
+        c.Remove();
+        c.MoveAfterLabels();
+        c.EmitDelegate(GetTypesSafe);
+    }
+
+    // If you consider no matches a fail, we could throw or log here with additional logic
+}
+```
+</details>
+
+<details>
+<summary>Match Repeating Pattern with ILWeaver</summary>
+
+:::caution
+`ReplaceCurrent` accepting `IEnumerable<Instruction>` is an unreleased API as of now. It's coming in the next release.
+Currently it accepts `Instruction`, but `CreateDelegateCall` returns `Instruction[]`.
+:::
+
+```cs
+static void ILHook_with_MonoDetour_and_ILWeaver(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    ILWeaverResult result = w.MatchMultipleRelaxed(
+        // First argument is a callback for every successful match
+        ILWeaver match =>
+        {
+            match.ReplaceCurrent(w.CreateDelegateCall(GetTypesSafe));
+        },
+        x => x.MatchCall<Assembly>(nameof(Assembly.GetTypes)) && w.SetCurrentTo(x)
+    );
+
+    // If you consider no matches a fail, we could throw or log here
+}
+```
+</details>
+
+`MatchMultipleRelaxed` can't end up in an infinite loop unlike a `while` statement with `TryGotoNext` where `MoveType` is `Before` and instructions are emitted right there pushing the first matched instruction forward in the method so it's going to be matched again on next loop.
+
+`MatchMultipleRelaxed` achieves this by going through all matches first, and then calling the callback for each match.
+
+#### Tangent On Correctness
+
+ILWeaver's `ReplaceCurrent` and `Replace` methods makes sure to transfer over any branch labels targeting the instruction to be replaced, including if the target instruction is the beginning or end of some part of an exception hander range.
+
+The above behavior is replicated in the ILCursor example with the use of `MoveAfterLabels` which causes the next emitted instruction to steal the labels and the potential exception hander range role of the next instruction.
+
+If you don't know about these things, ILWeaver has a higher chance of making your ILHook not break things. Even if you didn't use `Replace` and instead remove the instruction and inserted the replacement call, ILWeaver's method for removing an instruction is `RemoveAndShiftLabels` which tells you that removing an instruction has consequences. Once removed, you would call `InsertBeforeCurrentStealLabels` to steal the labels that were shifted forwards during the removal of the target instruction.
+
+:::caution
+`RemoveAndShiftLabels` is an unreleased API as of now. It's coming in the next release.
+:::
+
+That said, in this specific example this is unlikely to matter because the `call` instruction we are matching can't be the start of a try or catch block, nor is anyone likely to branch directly to it because it requires an instance of type `Assembly` on the stack.
+
+
+### Matching Next Instance of a Pattern
+
+:::danger
+`MatchInRangeRelaxed` is a nonexistent API as of now. It's coming in the next release hopefully.
+:::
+
+With ILCursor, this is done with `GotoNext` or `TryGotoNext`.  
+With ILWeaver, there is no equivalent method.
+
+However, if your goal is to match a known location in a method, and `MatchRelaxed` is problematic because you would need *many* predicates to match the correct location because the target method has repetitive instructions, you should use `MatchInRangeRelaxed` to match a narrower section of the target method where the instructions don't repeat.
+
+Use `MatchRelaxed` to collect the start and/or end instructions to be used as the range in `MatchInRangeRelaxed`.
