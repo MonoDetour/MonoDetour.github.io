@@ -9,7 +9,7 @@ MonoDetour has 3 built-in detour types. These are:
 
 - **PrefixDetour**: A hook which runs at the start of a method
 - **PostfixDetour**: A hook which runs at the end of a method
-- **ILHookDetour**: A regular MonoMod `ILHook`, capable of modifying methods on the CIL level
+- **ILHookDetour**: A MonoMod `ILHook` wrapper, capable of modifying methods on the CIL level
 
 MonoDetour also supports custom detour types with types that implement `IMonoDetourHookApplier`:
 
