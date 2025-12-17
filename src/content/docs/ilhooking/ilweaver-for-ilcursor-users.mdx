@@ -119,11 +119,6 @@ static void ILHook_with_ILCursor(ILContext il)
 <details>
 <summary>Match Repeating Pattern with ILWeaver</summary>
 
-:::caution
-`ReplaceCurrent` accepting `IEnumerable<Instruction>` is an unreleased API as of now. It's coming in the next release.
-Currently it accepts `Instruction`, but `CreateDelegateCall` returns `Instruction[]`.
-:::
-
 ```cs
 static void ILHook_with_MonoDetour_and_ILWeaver(ILManipulationInfo info)
 {
@@ -154,10 +149,6 @@ ILWeaver's `ReplaceCurrent` and `Replace` methods makes sure to transfer over an
 The above behavior is replicated in the ILCursor example with the use of `MoveAfterLabels` which causes the next emitted instruction to steal the labels and the potential exception hander range role of the next instruction.
 
 If you don't know about these things, ILWeaver has a higher chance of making your ILHook not break things. Even if you didn't use `Replace` and instead remove the instruction and inserted the replacement call, ILWeaver's method for removing an instruction is `RemoveAndShiftLabels` which tells you that removing an instruction has consequences. Once removed, you would call `InsertBeforeCurrentStealLabels` to steal the labels that were shifted forwards during the removal of the target instruction.
-
-:::caution
-`RemoveAndShiftLabels` is an unreleased API as of now. It's coming in the next release.
-:::
 
 That said, in this specific example this is unlikely to matter because the `call` instruction we are matching can't be the start of a try or catch block, nor is anyone likely to branch directly to it because it requires an instance of type `Assembly` on the stack.
 
