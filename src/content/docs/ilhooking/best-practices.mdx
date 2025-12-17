@@ -1,0 +1,162 @@
+---
+title: ILWeaver Best Practices
+description: Learn about the best practices with ILWeaver (or ILHooking in general).
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import { LinkCard } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+:::note
+ILWeaver is MonoDetour's IL manipulation API meant to be used in ILHooks. See [Introduction to ILHooking](/ilhooking/introduction) if you haven't already.
+:::
+
+This article teaches the best practices with ILWeaver. However, some of these apply for ILHooks in general.
+
+:::danger
+## Practices to Forget
+
+We'll start with common practices which do *not* apply to ILHooking with MonoDetour.
+
+#### Legacy MonoMod: Never Throw in an ILHook
+
+<details>
+<summary>MonoDetour allows you to throw in your ILHook, and the ILHook simply gets disabled.</summary>
+> In legacy MonoMod.RuntimeDetour (`<= 22`), an ILHook which throws is not removed from the ILHook chain for the target method. This prevents the ILHook chain from ever completing for the target method, and as such the target method can never be successfully ILHooked again.
+
+MonoDetour solves this issue by patching the `ILHook.Apply` method for legacy MonoMod.RuntimeDetour to try catch and undo the ILHook which caused the apply to throw. While this means that it could be another ILHook which throws because of your ILHook, this is the simplest fix for this terrible behavior. Additionally, this basically matches the behavior of at least MonoMod.RuntimeDetour `25.3.3` (reorg) and likely much earlier reorg versions.
+
+This fix applies for all MonoMod.RuntimeDetour `ILHook`s, which includes HarmonyX's monolithic ILHook. This means that if any HarmonyX transpiler throws, HarmonyX is forever dead for that target method, but everyone else can still ILHook the target method.
+</details>
+:::
+
+## When to ILHook
+
+ILHooking should usually be only done if it's the only sensible option left. For example, if you need to modify the behavior of a method somewhere in the middle, and the behavior you are looking for can't be replicated with a simple prefix or postfix (that **does not** include copy pasting logic from the target method), then ILHooking is usually the best option.
+
+Otherwise you probably shouldn't use an ILHook, as they are much more fragile than other hook types.
+
+## Reliability
+
+Advice on writing reliable ILHooks.
+
+### Unknown Instructions
+
+**❌ Never assume the locations of instructions.**  
+**✅ Always do instruction matching to locate your target instructions.**
+
+Other people can apply their ILHooks on the same method you are targeting which means the instructions of the target method may not be exactly as you saw in your C# decompiler.
+
+Additionally, if the target method is updated, assuming the locations of instructions will almost definitely break your ILHook.
+
+Let's take these target method instructions from [Introduction to ILHooking](/ilhooking/introduction) for example:
+
+```cil
+IL_0000: ldstr "Hello, World!"
+IL_0005: ret
+```
+
+And let's say you want to change `ldstr "Hello, World!"` to `ldstr "ILHooked!"`:
+```cs
+static void ILHook_UnknownInstructions(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    // ❌ Do not assume target instructions' locations:
+    w.ReplaceOperand(w.First, "ILHooked!");
+
+    // ✅ Do use instruction matching to find target instructions:
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchLdstr("Hello, World!") && w.SetCurrentTo(x)
+    );
+
+    result.ThrowIfFailure();
+
+    w.ReplaceCurrentOperand("ILHooked!");
+}
+```
+
+:::tip
+- Learn more about instruction matching from article: [ILWeaver for ILCursor Users](/ilhooking/ilweaver-for-ilcursor-users#instruction-matching)
+- See best practices about [replacing instructions](#replacing-instructions)
+:::
+
+## Compatibility With Other ILHooks
+
+A list of things to keep in mind in order to not break other people's ILHooks.
+
+### Inserting Instructions
+
+**❌ Do not insert a duplicate instruction instance in a method body.**  
+**✅ Do create a copy of an instruction you insert if it already exists on the method body.**
+
+Duplicate instruction instances in a method body may break the whole method compilation for example in cases where they are the target of a branch instruction.
+
+Additionally, Mono.Cecil's `Instruction` type has `Previous` and `Next` properties which are updated when the instruction is inserted into the instruction list. Inserting a duplicate will make those properties point to the newly inserted duplicate's neighbors, which is false the instruction instance which existed earlier.
+
+```cs
+static void ILHook_Insert_Example(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchLdsfld<Foo>(nameof(Foo.Baz)) && w.SetCurrentTo(x),
+        x => x.MatchCall<Foo>(nameof(Foo.Bar))
+    );
+
+    result.ThrowIfFailure();
+
+    // ❌ Do not insert duplicate instruction instance:
+    w.InsertBeforeCurrent(
+        w.Current,
+        w.CreateDelegateCall(MyMethod)
+    );
+
+    // ✅ Do insert a copy of the instruction:
+    w.InsertBeforeCurrent(
+        w.Current.Clone(),
+        w.CreateDelegateCall(MyMethod)
+    );
+}
+```
+
+:::note
+MonoDetour may implement duplicate instruction validation and correction in the future, but as of now you must avoid inserting duplicate instruction instances.
+:::
+
+### Replacing Instructions
+
+**❌ Do not modify an existing instruction instance's OpCode or Operand.**  
+**✅ Do replace the instruction with a copy you modify.**
+
+Not modifying instruction instances already in the method body will not harm ILWeaver's "Relaxed" instruction matching methods' ability to match against the real original state of the target method CIL instructions, as the "original" instruction instances are the same as the real current instructions of the method.
+
+```cs
+static void ILHook_Replace_Example(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchCall<Foo>(nameof(Foo.Bar)) && w.SetCurrentTo(x)
+    );
+
+    result.ThrowIfFailure();
+
+    // ❌ Do not modify existing instruction instance:
+    w.Current.Operand = myFooBarReplacementMethod;
+
+    // ✅ Do replace the instruction with a copy that is modified:
+    w.ReplaceCurrentOperand(myFooBarReplacementMethod);
+
+    // ✅ Do replace the instruction:
+    w.ReplaceCurrent(
+        w.CreateDelegateCall(MyFooBarReplacement)
+    );
+}
+```
+
+:::note
+It would be possible for MonoDetour to work around this issue by duplicating every instruction and having a Dictionary to map the current instructions to these original copies and another Dictionary for the reverse, but that hasn't been attempted due to performance concerns. That said, it might be explored in the future.
+:::

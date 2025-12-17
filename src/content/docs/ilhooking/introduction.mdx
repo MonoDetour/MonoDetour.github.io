@@ -100,25 +100,23 @@ The `nop` instruction does nothing, `ldc.i4.0` pushes int 0 to the stack, and `p
 
 Let's say we want to hook the first example, where `"Hello, World!"` is pushed to the stack and then returned right after. We want to change the string to `"ILHooked!"`
 
-The following example is written using the `ILWeaver` API from MonoDetour. Note that you don't need to use it, although it's recommended as it's essentially a redesign of the `ILCursor` API from MonoMod, aiming to remove a lot of the ambiguity and potentially confusing behavior. Right now you aren't expected to know how the `ILWeaver` API works, that will be explained in later articles in further detail.
+The following example is written using the `ILWeaver` API from MonoDetour. Note that you don't need to use it, although it's one of, if not the most user friendly IL manipulation API there is. Right now you aren't expected to know how the `ILWeaver` API works, that will be explained in later articles in further detail.
 
 ```cs
-// Tip: Always describe:
-// 1. Why your ILHook exists
-// 2. What it does
+// Tip: Always describe why your ILHook exists
+// and why it does what it does.
 
-/// <summary>
-/// Replaces the return value of ReturnHelloWorld `"Hello, World!"`
-/// with `"ILHooked!"` as an example.
-/// </summary>
+// We need the return value of ReturnHelloWorld to be
+// "ILHooked" rather than "Hello, World!" because of
+// <insert reason here>
 static void ILHook_ReturnHelloWorld(ILManipulationInfo info)
 {
     // Create a new ILWeaver for manipulation
     ILWeaver w = new(info);
 
     // Position weaver to to the ldstr instruction we are looking for
-    ILWeaverResult result = w.MatchRelaxed(x =>
-        x.MatchLdstr("Hello, World!") && w.SetCurrentTo(x)
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchLdstr("Hello, World!") && w.SetCurrentTo(x)
     );
 
     // If the instruction wasn't found, maybe the target method changed
@@ -126,7 +124,7 @@ static void ILHook_ReturnHelloWorld(ILManipulationInfo info)
     result.ThrowIfFailure();
 
     // Set the Operand on the Current instruction
-    w.Current.Operand = "ILHooked!";
+    w.ReplaceCurrentOperand("ILHooked!");
 }
 ```
 
@@ -139,7 +137,7 @@ static void ILHook_ReturnHelloWorld(ILManipulationInfo info)
 
     w.MatchRelaxed(x => x.MatchLdstr("Hello, World!") && w.SetCurrentTo(x))
         .ThrowIfFailure()
-        .Current.Operand = "ILHooked!";
+        .ReplaceCurrentOperand("ILHooked!");
 }
 ```
 
@@ -150,3 +148,9 @@ Md.SomeNamespace.SomeType.ReturnHelloWorld.ILHook(ILHook_ReturnHelloWorld);
 ```
 
 And as a reminder, see [ILHook Behaviour](#ilhook-behavior) earlier in this article.
+
+<LinkCard
+  title="ILWeaver Best Practices"
+  href="/ilhooking/best-practices"
+  description="Learn why we do instruction matching with 'MatchRelaxed' along other things"
+/>
