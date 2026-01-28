@@ -26,9 +26,10 @@ export const collections = {
 		loader: docsLoader(),
 		schema: docsSchema({
 			extend: pageThemeObsidianSchema.extend({
-				description: z.string(),
+				// I don't like having these optional, but it's the easiest with generated API references.
+				description: z.string().optional(),
 				sidebar: z.object({
-					order: z.number(),
+					order: z.number().optional(),
 				}),
 			}),
 		})

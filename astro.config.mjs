@@ -63,6 +63,11 @@ export default defineConfig({
 					label: "ILHooking",
 					autogenerate: { directory: "ilhooking" },
 				},
+				{
+					label: "API Reference",
+					autogenerate: { directory: "api" },
+					collapsed: true,
+				},
 			],
 		}),
 	],

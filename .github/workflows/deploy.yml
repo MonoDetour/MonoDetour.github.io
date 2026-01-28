@@ -20,6 +20,40 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
+
+      - name: Checkout MonoDetour repo
+        uses: actions/checkout@v4
+        with:
+          repository: MonoDetour/MonoDetour
+          path: MonoDetour
+          ref: main
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Build MonoDetour docfx metadata
+        working-directory: ./MonoDetour
+        run: |
+          dotnet restore --locked-mode
+          dotnet tool install -g docfx
+          docfx metadata ./docfx/docfx.json
+
+      - name: Checkout Hamunii/docfx-to-astro repo
+        uses: actions/checkout@v4
+        with:
+          repository: Hamunii/docfx-to-astro
+          path: docfx-to-astro
+          ref: master
+          submodules: recursive
+
+      - name: Build MonoDetour Astro API Reference
+        working-directory: ./docfx-to-astro
+        run: |
+          dotnet run -c Release --project ./DocfxToAstro/ -f net9.0 -- -i "../MonoDetour/docfx/api" -o "../src/content/docs/api" --base-slug api --group-by Namespace --verbose
+
       - name: Install, build, and upload your site
         uses: withastro/action@v3
         # with:
