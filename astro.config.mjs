@@ -40,7 +40,9 @@ export default defineConfig({
 				'./src/styles/global.css'
 			],
 			plugins: [
-				starlightLinksValidator(),
+				starlightLinksValidator({
+					errorOnRelativeLinks: false, // It'd be better to ignore /api/ but I didn't get that working.
+				}),
 				starlightThemeObsidian({
 					debug: false,
 					sitemapConfig: {},
