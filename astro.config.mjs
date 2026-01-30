@@ -11,6 +11,9 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'MonoDetour',
+			components: {
+				EditLink: './src/components/EditLink.astro',
+			},
 			expressiveCode: {
 				themes: ['dracula', 'one-light'],
 				shiki: {
@@ -74,4 +77,7 @@ export default defineConfig({
 		}),
 	],
 	devToolbar: { enabled: false },
+	// Whenever a page changes, add it to the redirects.
+	// https://docs.astro.build/en/guides/routing/#redirects
+	redirects: {},
 });

@@ -1,0 +1,33 @@
+---
+import DefaultEditLink from '@astrojs/starlight/components/EditLink.astro';
+import { Icon } from '@astrojs/starlight/components';
+
+const { editUrl } = Astro.locals.starlightRoute;
+const isApiRef = Astro.locals.starlightRoute.id.startsWith('api/');
+---
+
+{
+	isApiRef ? (
+		editUrl && (
+			<a href={editUrl} class="sl-flex print:hidden">
+				<Icon name="github" size="1.2em" />
+				View source
+			</a>
+		)
+	)
+	: <DefaultEditLink {...Astro.props} />
+}
+
+<style>
+	@layer starlight.core {
+		a {
+			gap: 0.5rem;
+			align-items: center;
+			text-decoration: none;
+			color: var(--sl-color-gray-3);
+		}
+		a:hover {
+			color: var(--sl-color-white);
+		}
+	}
+</style>
