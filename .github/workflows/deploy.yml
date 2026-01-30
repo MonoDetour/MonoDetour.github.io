@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
+  # Invoked by MonoDetour repo
+  repository_dispatch:
+    types: [deploy-docs]
 
 # Allow this job to clone the repo and create a page deployment
 permissions:
