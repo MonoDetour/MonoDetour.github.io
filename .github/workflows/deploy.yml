@@ -46,7 +46,7 @@ jobs:
         with:
           repository: Hamunii/docfx-to-astro
           path: docfx-to-astro
-          ref: master
+          ref: monodetour-docs
           submodules: recursive
 
       - name: Build MonoDetour Astro API Reference
