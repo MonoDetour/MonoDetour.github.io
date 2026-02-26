@@ -1,6 +1,11 @@
 :root {
     --sl-content-width: 50rem;
     --sl-sidebar-width: 22rem;
+    --sl-text-xl: 1.15rem;
+    --sl-text-2xl: 1.3rem;
+    --sl-text-3xl: 1.6rem;
+    --sl-text-4xl: 2.0rem;
+    --sl-text-5xl: 2.5rem;
 }
 
 .sidebar-pane {
@@ -8,6 +13,5 @@
 }
 
 .right-sidebar {
-    border-left: 1px solid var(--sl-color-hairline-shade);
     margin-top: 10px;
 }
