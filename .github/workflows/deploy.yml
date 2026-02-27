@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # For lastUpdated data for pages
 
       - name: Checkout MonoDetour repo
         uses: actions/checkout@v4
