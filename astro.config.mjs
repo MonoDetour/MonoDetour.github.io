@@ -11,6 +11,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'MonoDetour',
+			lastUpdated: true,
 			components: {
 				EditLink: './src/components/EditLink.astro',
 			},
