@@ -37,10 +37,15 @@ MonoDetour comes in 2 parts:
 ## Adding to Your Project
 
 :::caution
-This library is not fully released, and things *will* change.
+This library has not reached version `1.0` yet:
 
-- Bugs and missing functionality is expected
-- Documentation may not reflect reality
+- Some APIs may slightly change (with at least a 12 month deprecation notice, if possible)
+  - MonoDetour.HookGen version `0.8.0` (current is `0.7.x`) will have [compile-time breaking changes in its API](<https://github.com/MonoDetour/MonoDetour/pull/17>) (earlier versions will still work at runtime)
+- Some APIs like [ILWeaver](/api/monodetour.cil.ilweaver/) may [lack some features](<https://github.com/MonoDetour/MonoDetour/issues/20>)
+- The documentation on this site is not complete (the C# API itself is fully documented)
+  - [ILHooking](/ilhooking/introduction) is missing articles on more examples and explanations
+  - Some articles are too short or disorganized
+  - This documentation does a poor job on explaining why you'd want MonoDetour if you are not already familiar with .NET modding in the first place
 :::
 
 Note: MonoDetour implements interop support for HarmonyX. This means that MonoDetour prefix and postfix hooks are aware of HarmonyX prefix and postfix hooks, and they respect each other.
