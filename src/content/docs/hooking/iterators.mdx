@@ -1,6 +1,6 @@
 ---
-title: Hooking IEnumerators
-description: Learn how IEnumerator methods work and how to hook them.
+title: Hooking Iterators
+description: Learn how iterator methods work and how to hook them — IEnumerable, IEnumerable<T>, IEnumerator, IEnumerator<T>
 sidebar:
   order: 1
 ---
@@ -13,7 +13,14 @@ This article expects that you have read the [hooking normal methods](/hooking/no
 If you just want the answer, see the answer on the [bottom of this page](#conclusion).
 :::
 
-IEnumerator methods are quite special. A simple IEnumerator method such as this:
+[Iterator methods](<https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/iterators>), which include methods returning a value which is
+[`IEnumerable`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerable),
+[`IEnumerable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerable-1),
+[`IEnumerator`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.ienumerator), or
+[`IEnumerator<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerator-1),
+are quite special, and this article discusses hooking them.
+
+Take for example a method returning `IEnumerator<string>`, although it could be any of the above, and it doesn't significantly matter whether or not the method is static, but here it is static:
 
 ```cs
 public static class ContainingClass
@@ -26,7 +33,7 @@ public static class ContainingClass
 }
 ```
 
-Will actually be turned into something like this by the C# compiler:
+The C# compiler transforms iterators such as this into methods which return a state machine:
 
 :::note
 `<` and `>` in member names have been turned to `_` to make the code snippet valid C#.
@@ -39,7 +46,7 @@ public static class ContainingClass
     public static IEnumerator<string> GetMessages()
     {
         // All of this method's logic has been moved into the
-        // compiler generated IEnumerator state machine!
+        // compiler generated iterator state machine!
         // This method only constructs and returns the IEnumerator object.
         return new _GetMessages_d__0(0);
     }
@@ -144,7 +151,7 @@ Let's go through both solutions anyways:
 
 ### 1. Wrap The Enumerator
 
-Because of how small methods that construct and return an enumerator class usually are, the JIT compiler uses an optimization where it essentially copies the small method to a calling method. This happens if the a method which calls the enumerator getter method gets compiled before you hook the enumerator getter method.
+Because of how small methods that construct and return an enumerator class usually are, the JIT compiler uses an optimization where it essentially copies the small method to a calling method. This happens if a method which calls the enumerator getter method gets compiled before you hook the enumerator getter method.
 
 The issue here is that if the target method is inlined, hooks applied to it won't run where the target method has been inlined.
 
@@ -195,10 +202,17 @@ static class MyHooks
 
     static IEnumerator<string> Wrapper_GetMessages(IEnumerator<string> original)
     {
+        // Code here runs only at the beginning of enumeration...
+
+        // Enumerate the whole original enumerator object to completion
         while (original.MoveNext())
         {
+            // On each MoveNext call of the original, we return its return value.
+            // Or, we could also return a different value if we wanted to.
             yield return original.Current;
         }
+
+        // Code here runs only at the end of enumeration...
     }
 }
 ```
@@ -287,47 +301,53 @@ static void Postfix_GetMessages_MoveNext(
 
 ## Conclusion
 
-Enumerator methods can be hooked multiple ways, but hooking the MoveNext method is recommended by MonoDetour.
+[Iterators](<https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/iterators>) can be hooked multiple ways, but hooking the MoveNext method is recommended by MonoDetour.
+
+:::note
+The next major version `0.8` (current is `0.7.x`) of MonoDetour.HookGen will change the hook helper method generation for `MoveNext`, so that e.g. `Md.Class.Method.PrefixMoveNext` becomes `Md.Class.Method.MoveNext.Prefix`. This is a compile-time breaking change; you can safely keep using `0.7.x` at runtime.
+
+See [MonoDetour.HookGen: use static extension methods #17](<https://github.com/MonoDetour/MonoDetour/pull/17>) for more info.
+:::
 
 - Prefix on the MoveNext method:
 
-```cs
-Md.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
-// ...
-static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
-{
-    // This runs at the beginning of every MoveNext call
-}
-```
-
-> See [Solution: Hook MoveNext Directly](#solution-hook-movenext-directly) for only running once at the start of the whole enumeration.
+    > ```cs
+    > Md.Namespace.ContainingClass.GetMessages.PrefixMoveNext(Prefix_GetMessages_MoveNext);
+    > // ...
+    > static void Prefix_GetMessages_MoveNext(SpeakableEnumerator<string> self)
+    > {
+    >     // This runs at the beginning of every MoveNext call
+    > }
+    > ```
+    >
+    > See [Solution: Hook MoveNext Directly](#solution-hook-movenext-directly) for only running once at the start of the whole enumeration.
 
 - Postfix on the MoveNext method:
 
-```cs
-Md.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
-// ---
-static void Postfix_GetMessages_MoveNext(
-    SpeakableEnumerator<string> self,
-    ref bool continueEnumeration
-)
-{
-    // This runs at the end of every MoveNext call
-}
-```
-
-> See [Solution: Hook MoveNext Directly](#solution-hook-movenext-directly) for only running once at the end of the whole enumeration.
+    > ```cs
+    > Md.Namespace.ContainingClass.GetMessages.PostfixMoveNext(Postfix_GetMessages_MoveNext);
+    > // ...
+    > static void Postfix_GetMessages_MoveNext(
+    >     SpeakableEnumerator<string> self,
+    >     ref bool continueEnumeration
+    > )
+    > {
+    >     // This runs at the end of every MoveNext call
+    > }
+    > ```
+    >
+    > See [Solution: Hook MoveNext Directly](#solution-hook-movenext-directly) for only running once at the end of the whole enumeration.
 
 - ILHook the MoveNext method:
 
-```cs
-Md.Namespace.ContainingClass.GetMessages.ILHookMoveNext(ILHook_GetMessages_MoveNext);
-// ...
-static void ILHook_GetMessages_MoveNext(ILManipulationInfo info)
-{
-    // Manipulate the MoveNext method here,
-    // for example change the strings that are returned.
-}
-```
-
-For manipulating methods with ILHooks, see [Introduction to ILHooking](/ilhooking/introduction).
+    > ```cs
+    > Md.Namespace.ContainingClass.GetMessages.ILHookMoveNext(ILHook_GetMessages_MoveNext);
+    > // ...
+    > static void ILHook_GetMessages_MoveNext(ILManipulationInfo info)
+    > {
+    >     // Manipulate the MoveNext method here,
+    >     // for example change the strings that are returned.
+    > }
+    > ```
+    >
+    > For manipulating methods with ILHooks, see [Introduction to ILHooking](/ilhooking/introduction).

@@ -80,5 +80,7 @@ export default defineConfig({
 	devToolbar: { enabled: false },
 	// Whenever a page changes, add it to the redirects.
 	// https://docs.astro.build/en/guides/routing/#redirects
-	redirects: {},
+	redirects: {
+		"/hooking/ienumerators/": "/hooking/iterators/"
+	},
 });
