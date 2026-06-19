@@ -35,7 +35,7 @@ Let's generate hooks for the type:
 // Tell MonoDetour's HookGen to generate hooks
 // for the target type.
 [MonoDetourTargets(typeof(LibraryClass))]
-public class LibraryClassHooks
+static class LibraryClassHooks
 {
     // ...
 }
@@ -47,7 +47,7 @@ Now we can get to hooking. A simple hook we can do is:
 
 ```cs
 [MonoDetourTargets(typeof(LibraryClass))]
-public class LibraryClassHooks
+static class LibraryClassHooks
 {
     // MonoDetourManager.InvokeHookInitializers will
     // call methods marked with this attribute in types
@@ -97,17 +97,80 @@ static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
 
 ## Changing Return Value
 
-To change a return value, your hook must be a Postfix. We can use the `returnValue` parameter for accessing and setting the return value.
+To change a return value, your hook must be either be a Postfix or a ControlFlowPrefix (see [Modifying ControlFlow](#modifying-control-flow)). We can use the `returnValue` parameter for accessing and setting the return value.
 
 ```cs
 Md.Lib.LibraryClass.TakeAndReturnInt.Postfix(Postfix_TakeAndReturnInt);
-
+// ...
 static void Postfix_TakeAndReturnInt(LibraryClass self, ref int number,
     ref int returnValue)
 {
     returnValue += 50;
 }
 ```
+
+## Modifying Control Flow
+
+The behavior of returning from a ControlFlowPrefix hook can be one of the following:
+
+- Continue executing the target method normal
+- Skip the original instructions, but still run all Prefix and Postfix hooks
+- Return immediately from the target method, skipping anything that would have come after your control flow prefix, but while still running all hooks that came before
+
+This behavior is defined by the [ReturnFlow](/api/monodetour.detourtypes.returnflow/) enum.
+
+:::danger
+**WARNING:** Modifying the control flow of a method in a hook should **NOT** be done if you are copy pasting logic from the original method. This will _destroy_ compatibility with ILHooks applied to the target method. In such a case, **ALWAYS** use an [ILHook](/ilhooking/introduction) to modify the CIL instructions of the method directly.
+:::
+
+To apply a control flow prefix, one should first instruct MonoDetour.HookGen to generate ControlFlowPrefix hook helpers for the target type:
+
+```cs
+[MonoDetourTargets(typeof(LibraryClass), GenerateControlFlowVariants = true)]
+static class LibraryClassHooks { }
+```
+
+Once this is done, hook methods named `ControlFlowPrefix` will appear for all methods in the target type:
+
+```cs
+// 1. MUST SET: GenerateControlFlowVariants = true
+[MonoDetourTargets(typeof(LibraryClass), GenerateControlFlowVariants = true)]
+static class LibraryClassHooks
+{
+    [MonoDetourHookInitialize]
+    static void Init()
+    {
+        // 2. Now ControlFlowPrefix hooks can be used and applied
+        Md.Lib.LibraryClass.TakeAndReturnInt.ControlFlowPrefix(
+            ControlFlowPrefix_TakeAndReturnInt
+        );
+    }
+
+    static ReturnFlow ControlFlowPrefix_TakeAndReturnInt(
+        LibraryClass self,
+        ref int number,
+        ref int returnValue
+    )
+    {
+        // We can set the to-be return value of the
+        // target method by assigning to returnValue:
+        returnValue = 1337;
+
+        // We can dynamically choose the return behavior
+        // of our ControlFlowPrefix hook.
+        return number switch
+        {
+            0 => ReturnFlow.None,
+            1 => ReturnFlow.SkipOriginal,
+            _ => ReturnFlow.HardReturn,
+        };
+    }
+}
+```
+
+:::note
+If the ControlFlowPrefix hook doesn't cancel the target method but sets the return value of the target method, the original return value of the method will still be used unless if some other control flow prefix hook after your hook decides to cancel the target method and doesn't override the return value you set.
+:::
 
 ## Hooking Properties
 
