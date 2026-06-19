@@ -177,6 +177,11 @@ If the ControlFlowPrefix hook doesn't cancel the target method but sets the retu
 MonoDetour.HookGen also generates hooks for properties, so this is the same case as with the basic hook example.
 One thing to know though is that getter methods have a `get_` prefix, and setter methods have a `set_` prefix.
 
+:::danger
+Getter methods are usually very small, and small methods often suffer from inlining.
+This same issue is more closely discussed in [Hooking Iterators # 1 Wrap The Enumerator](/hooking/iterators#1-wrap-the-enumerator).
+:::
+
 ```cs
 // Hook the getter method:
 Md.Lib.LibraryClass.get_IsTrue.Prefix(Prefix_get_IsTrue);
