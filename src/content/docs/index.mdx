@@ -1,9 +1,9 @@
 ---
-title: Welcome to the MonoDetour Docs
-description: Get started with MonoDetour for your .NET detouring needs!
+title: MonoDetour
+description: Easy and convenient .NET detouring with C# source generators. Powered by MonoMod.
 template: splash
 hero:
-  tagline: For a better .NET detouring experience! Powered by MonoMod.
+  tagline: Easy and convenient .NET detouring with C# source generators. Powered by MonoMod.
   image:
     file: ../../assets/MonoDetour.webp
   actions:
@@ -13,3 +13,121 @@ hero:
 sidebar:
   order: 0
 ---
+
+import { Card, CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Adding to Your Project
+
+You can add MonoDetour to your project by adding the following to your `csproj`:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="MonoDetour.HookGen" Version="0.7.*" PrivateAssets="all" />
+  <PackageReference Include="MonoDetour" Version="[*,2.0)" /> <!-- Highest version below 2.0 -->
+</ItemGroup>
+```
+
+---
+
+## Example: Hooking a Method
+
+MonoDetour makes detouring methods type-safe by making use of C# source generators. Here's what this means.
+
+### Your Problem
+
+You are running some app, but you want to modify it so that whenever its `WriteMessage` method runs, every instance of the string `called` is replaced with `hooked`.
+
+```csharp title="SomeApp.dll"
+namespace SomeApp;
+
+public class SomeClass
+{
+    public void WriteMessage(string message) => Console.WriteLine(message);
+}
+```
+
+The app does not have any way to configure this, not in a config or in its API, but fret not; this is what MonoDetour exists for!
+
+### Runtime Detouring
+
+MonoDetour makes detouring methods at runtime in .NET apps easy without modifying any files on disk. In the following snippet, we apply the changes we want to the `WriteMessage` method with little code, where our detour to `WriteMessage` is enforced to be correct at compile-time:
+
+```cs title="SomeClassHooks.cs"
+using MonoDetour;
+using MonoDetour.HookGen;
+
+// Tell MonoDetour.HookGen to generate hook helpers for the target type
+[MonoDetourTargets(typeof(SomeClass))]
+static class SomeClassHooks
+{
+    // Mark this method to be executed by MonoDetourManager.InvokeHookInitializers
+    [MonoDetourHookInitialize]
+    static void Init()
+    {
+        // Apply our prefix detour which runs before the target method.
+        // 'Md' is the base namespace for generated hook helpers.
+        Md.SomeApp.SomeClass.WriteMessage.Prefix(Prefix_SomeMethod)
+    }
+
+    static void Prefix_SomeMethod(SomeType self, ref string message)
+    {
+        message = message.Replace("called", "hooked");
+    }
+}
+```
+
+However, in the above snippet, we don't call `SomeClassHooks.Init`. We'll do it here in our program's entry point:
+
+```cs title="Program.cs"
+using System.Reflection;
+using MonoDetour;
+
+// Call all methods marked with [MonoDetourHookInitialize]
+// in classes marked with [MonoDetourTargets] in this assembly
+MonoDetourManager.InvokeHookInitializers(Assembly.GetExecutingAssembly());
+
+// Now when we call WriteMessage,
+// our prefix detour will run before the original method runs
+SomeClass someClass = new();
+someClass.WriteMessage("I have been called!");
+// Prints:
+// I have been hooked!
+```
+
+In most real use cases, you likely would use MonoDetour in a plugin for a mod loader like BepInEx or MelonLoader, and the app we would be detouring would be some game.
+
+:::note
+MonoDetour uses "detour", "hook" and occasionally "patch" interchangeably.
+:::
+
+## When to Use MonoDetour
+
+MonoDetour, like [MonoMod.RuntimeDetour](<https://www.nuget.org/packages/MonoMod.RuntimeDetour>)—the library MonoDetour wraps—is not a library you should use if you don't absolutely need to. For the most part, this means that you should never use MonoDetour on your own assemblies, and you should only use it on assemblies you don't control, which usually includes .NET games.
+
+## Learn More
+
+<CardGrid>
+<LinkCard
+    title="Overview"
+    href="/getting-started/overview"
+    description="See what MonoDetour's documentation has to offer"
+  />
+
+  <LinkCard
+    title="Why MonoDetour over HarmonyX or MonoMod?"
+    href="/getting-started/why-monodetour"
+    description="Learn about MonoDetour's design and how it came to be"
+  />
+
+  <LinkCard
+    title="Introduction"
+    href="/getting-started/introduction"
+    description="What you might want to know when starting out"
+  />
+
+  <LinkCard
+    title="Hooking Methods"
+    href="/hooking/normal-methods"
+    description="Learn more about how to hook methods with MonoDetour"
+  />
+</CardGrid>

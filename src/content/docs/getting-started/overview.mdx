@@ -17,9 +17,9 @@ MonoDetour comes in 2 parts:
 - **MonoDetour.HookGen**: The C# HookGen source generator
 
 <LinkCard
-  title="Why use MonoDetour?"
+  title="Why MonoDetour over HarmonyX or MonoMod?"
   href="/getting-started/why-monodetour"
-  description="Learn why this project exists, and why you might want to use it over Harmony or MonoMod!"
+  description="Learn why this project exists, and why you might want to use it over HarmonyX or MonoMod!"
 />
 
 <LinkCard
@@ -45,13 +45,11 @@ This library has not reached version `1.0` yet:
 - The documentation on this site is not complete (the C# API itself is fully documented)
   - [ILHooking](/ilhooking/introduction) is missing articles on more examples and explanations
   - Some articles are too short or disorganized
-  - This documentation does a poor job on explaining why you'd want MonoDetour if you are not already familiar with .NET modding in the first place
 :::
 
 Note: MonoDetour implements interop support for HarmonyX. This means that MonoDetour prefix and postfix hooks are aware of HarmonyX prefix and postfix hooks, and they respect each other.
 
 Add this to your csproj, changing the version number of MonoDetour.HookGen to optimally the newest:
-
 
 ```xml
 <ItemGroup>
