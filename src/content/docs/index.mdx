@@ -50,7 +50,9 @@ The app does not have any way to configure this, not in a config or in its API, 
 
 ### Runtime Detouring
 
-MonoDetour makes detouring methods at runtime in .NET apps easy without modifying any files on disk. In the following snippet, we apply the changes we want to the `WriteMessage` method with little code, where our detour to `WriteMessage` is enforced to be correct at compile-time:
+MonoDetour makes detouring (often also called "hooking" or "patching") methods at runtime in .NET apps easy, and without modifying any files on disk. Runtime detouring is also offered by [MonoMod.RuntimeDetour](<https://www.nuget.org/packages/MonoMod.RuntimeDetour>) which MonoDetour uses itself. While MonoMod.RuntimeDetour provides the functionality, it isn't as easy and convenient to use as it could be, which is why MonoDetour's full focus is on providing the best experience.
+
+In the following snippet, we apply the changes we want to the `WriteMessage` method with little code, where our detour to `WriteMessage` is enforced to be correct at compile-time:
 
 ```cs title="SomeClassHooks.cs"
 using MonoDetour;
@@ -69,13 +71,13 @@ static class SomeClassHooks
         Md.SomeApp.SomeClass.WriteMessage.Prefix(Prefix_SomeMethod)
     }
 
-    static void Prefix_SomeMethod(SomeType self, ref string message)
+    static void Prefix_SomeMethod(SomeClass self, ref string message)
     {
         message = message.Replace("called", "hooked");
     }
 }
 ```
-
+j
 However, in the above snippet, we don't call `SomeClassHooks.Init`. We'll do it here in our program's entry point:
 
 ```cs title="Program.cs"
