@@ -1,0 +1,137 @@
+---
+title: Basic ILHook Examples
+description: Learn ILHooking from basic ILHook examples
+sidebar:
+  order: 0.1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import { LinkCard } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+You should have a basic understanding of CIL and how ILHooks work from the previous article. In this article, we will be learning from basic ILHook examples. [These examples are implemented in MonoDetour's Tests](<https://github.com/MonoDetour/MonoDetour/tree/main/tests/MonoDetour.UnitTests/Examples>) to ensure they are correct.
+
+The goal is to show multiple unique ILHooks to both teach ILWeaver and to strengthen your understanding of how ILHooks work in general.
+
+## Replacing an Instruction
+
+In this example, we are going to fix the mistake in this method:
+
+```cs
+public static bool IsAboveZero(float num)
+{
+    if (num >= 0)
+        return true;
+    else
+        return false;
+}
+```
+
+the method should return true if 'num' is above 0,
+but mistakenly, it also returns true if 'num' is equal to 0!
+
+The target method's instructions look like this:
+
+```cil
+IL_0000: ldarg.0            // load arg (float)num
+IL_0001: ldc.r4 0.0         // load (float)0
+IL_0006: blt.un.s IL_000a   // branch to labelRetFalse if
+                            // (float)num is less than (float)0
+
+IL_0008: ldc.i4.1           // load (int)1 (equivalent to 'true')
+IL_0009: ret                // and return
+
+IL_000a: ldc.i4.0           // load (int)0 (equivalent to 'false')
+IL_000b: ret                // and return
+```
+
+In the instructions, 'blt.un' is used, whose logic is equivalent
+to the less than '\<' operator in C#.
+
+Here's the logic rewritten in C# to closely follow the logic
+and control flow of the instructions:
+
+```cs
+public static bool IsAboveZero(float num)
+{
+    if (num < 0)
+        goto labelReturnFalse;
+
+    return true;
+
+    labelReturnFalse:
+    return false;
+}
+```
+
+In the above snippet we can see that if 'num' is *less than* 0, we return false.
+To make the logic correct, the condition needs to be *less than or equal*.
+
+The OpCode for this is 'ble.un', [which is described as following](<https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes.ble_un>):
+
+> Transfers control to a target instruction if the first value is less than or equal
+to the second value, when comparing unsigned integer values or unordered float values.
+
+So our goal is to change the 'blt.un' OpCode with 'ble.un', and then
+the behavior of the IsAboveZero method is fixed.
+
+```cs
+static void ILHook_IsAboveZero(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    // When matching the blt.un OpCode, we want to store the
+    // branch label here for our replacement instruction.
+    ILLabel? labelReturnFalse = null!;
+
+    // We perform a sufficiently unique match on the instructions to
+    // find the exact location we are looking for, and set the ILWeaver's
+    // Current property to the instruction with the blt.un OpCode.
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchLdarg(0),
+        x => x.MatchLdcR4(0),
+        x => x.MatchBltUn(out labelReturnFalse) && w.SetCurrentTo(x)
+    );
+
+    // If the match failed, throw.
+    result.ThrowIfFailure();
+
+    // We replace the instruction that has blt.un with our instruction.
+    w.ReplaceCurrent(w.Create(OpCodes.Ble_Un, labelReturnFalse));
+}
+```
+
+<details>
+<summary>The ILHook also needs to be applied</summary>
+
+This is the common boilerplate for `MonoDetourManager.InvokeHookInitializers` usage:
+
+```cs
+[MonoDetourTargets(typeof(SomeApp))]
+static class SomeAppHooks
+{
+    [MonoDetourHookInitialize]
+    static void Init()
+    {
+        Md.SomeApp.IsAboveZero.ILHook(ILHook_IsAboveZero);
+    }
+
+    static void ILHook_IsAboveZero(ILManipulationInfo info)
+    {
+        // ... code here ...
+    }
+}
+```
+
+And then where you initialize your mod, you call this method once on your assembly:
+
+```cs
+MonoDetourManager.InvokeHookInitializers(Assembly.GetExecutingAssembly());
+```
+
+This information won't be repeated for the rest of the examples.
+</details>
+
+:::note
+More basic & advanced ILHook examples are coming sometime in the future!
+:::
