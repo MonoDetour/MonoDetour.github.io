@@ -13,6 +13,26 @@ You should have a basic understanding of CIL and how ILHooks work from the previ
 
 The goal is to show multiple unique ILHooks to both teach ILWeaver and to strengthen your understanding of how ILHooks work in general.
 
+:::tip
+When matching instructions, we use MonoMod's [ILPatternMatchingExt](<https://monomod.dev/api/MonoMod.Cil.ILPatternMatchingExt.html>) extension methods.
+The general format is `Match{OpCode}` and the methods have overloads for matching just the OpCode or also the Operand.
+
+```cs
+// Match Ldarg with Operand 0
+x => x.MatchLdarg(0),
+
+// Match Ldfld with any Operand and discard 'out' Operand value
+x => x.MatchLdfld(out _),
+
+// Match Brtrue and store Operand value to a local variable
+x => x.MatchBrtrue(out branchTarget),
+
+// Match Call with any method starting with '<Foo>'
+x => x.MatchCall(out var method)
+    && method.Name.StartsWith("<Foo>", StringComparison.Ordinal),
+```
+:::
+
 ## Replacing an Instruction
 
 In this example, we are going to fix the mistake in this method:
@@ -113,7 +133,7 @@ static class SomeAppHooks
     [MonoDetourHookInitialize]
     static void Init()
     {
-        Md.SomeApp.IsAboveZero.ILHook(ILHook_IsAboveZero);
+        Md.SomeNamespace.SomeApp.IsAboveZero.ILHook(ILHook_IsAboveZero);
     }
 
     static void ILHook_IsAboveZero(ILManipulationInfo info)
@@ -131,6 +151,116 @@ MonoDetourManager.InvokeHookInitializers(Assembly.GetExecutingAssembly());
 
 This information won't be repeated for the rest of the examples.
 </details>
+
+## Adding New Logic
+
+In this example, we are going to add new logic inside the (fictional) `Gun.OnUse` method:
+
+```cs
+class Gun(int magazineSize) : Item
+{
+    internal int _ammo = magazineSize;
+
+    public override void OnUse(Entity user)
+    {
+        if (_ammo <= 0)
+            return;
+
+        _ammo--;
+
+        if (!user.TryGetTarget(out Entity? target))
+        {
+            return;
+        }
+
+        target.TakeDamage(4);
+    }
+}
+```
+
+We'll add logic to make the gun deal double damage if the last ammo was used.
+An easy way to add such logic is by inserting our own `CalculateDamage` method:
+
+```cs
+target.TakeDamage(CalculateDamage(this, 4));
+```
+
+:::tip
+It's almost always preferred to perform as much logic in C#
+as possible while minimizing the amount of IL instructions written.
+:::
+
+Let's take a look at the instructions to see how this could be done.
+What we are looking for is the `Entity::TakeDamage(int32)` call near the end.
+
+```cil
+IL_0000: ldarg.0
+IL_0001: ldfld int32 Gun::_ammo
+IL_0006: ldc.i4.0
+IL_0007: bgt.s IL_000a
+
+IL_0009: ret
+
+IL_000a: ldarg.0
+IL_000b: ldarg.0
+IL_000c: ldfld int32 Gun::_ammo
+IL_0011: ldc.i4.1
+IL_0012: sub
+IL_0013: stfld int32 Gun::_ammo
+IL_0018: ldarg.1
+IL_0019: ldloca.s 0
+IL_001b: callvirt instance bool Entity::TryGetTarget(class Entity&)
+IL_0020: brtrue.s IL_0023
+
+IL_0022: ret
+
+IL_0023: ldloc.0
+IL_0024: ldc.i4.4 
+IL_0025: callvirt instance void Entity::TakeDamage(int32) // <-- We want here
+IL_002a: ret
+```
+
+Let's get to writing the ILHook.
+
+```cs
+// Somewhere, initialize the ILHook
+Md.Gun.OnUse.ILHook(ILHook_OnUse);
+```
+
+```cs
+static void ILHook_OnUse(ILManipulationInfo info)
+{
+    ILWeaver w = new(info);
+
+    // As always, we perform a match and point Current to what we are looking for.
+    ILWeaverResult result = w.MatchRelaxed(
+        x => x.MatchLdloc(out _),
+        x => x.MatchLdcI4(out _),
+        x => x.MatchCallvirt<Entity>(nameof(Entity.TakeDamage)) && w.SetCurrentTo(x)
+    );
+
+    result.ThrowIfFailure();
+
+    // We insert our instructions just before the Entity.TakeDamage method call.
+    w.InsertBeforeCurrent(
+        // Load arg 0, which is always 'this' for instance (non-static) methods
+        w.Create(OpCodes.Ldarg_0),
+        // Add a call to our method which consumes the base damage and 'this' from the stack.
+        w.CreateDelegateCall(CalculateDamage)
+    );
+
+    // CalculateDamage returns int, so stack becomes [Entity, int] for
+    // the Entity.TakeDamage method, which is correct.
+}
+
+static int CalculateDamage(int baseDamage, Gun self)
+{
+    if (self._ammo == 0)
+        return baseDamage * 2;
+    else
+        return baseDamage;
+}
+```
 
 :::note
 More basic & advanced ILHook examples are coming sometime in the future!
